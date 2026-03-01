@@ -10,6 +10,7 @@ import NewThread from './pages/NewThread'
 import Profile from './pages/Profile'
 import Chat from './pages/Chat'
 import Search from './pages/Search'
+import Voice from './pages/Voice'
 
 export default function App() {
   return (
@@ -26,6 +27,8 @@ export default function App() {
           <Route path="chat" element={<Chat />} />
           <Route path="chat/:channelId" element={<Chat />} />
           <Route path="search" element={<Search />} />
+          <Route path="voice" element={<Voice />} />
+          <Route path="voice/:roomId" element={<Voice />} />
         </Route>
       </Routes>
     </AuthProvider>

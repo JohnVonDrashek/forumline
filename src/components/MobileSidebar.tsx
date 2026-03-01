@@ -125,17 +125,27 @@ export default function MobileSidebar({ isOpen, onClose, categories }: MobileSid
           {/* Voice Rooms */}
           <div className="mt-6 mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-slate-500">
             Voice Rooms
-            <span className="ml-2 rounded bg-slate-700 px-1.5 py-0.5 text-[10px] font-normal normal-case text-slate-400">
-              Soon
-            </span>
           </div>
-          <div className="space-y-1 opacity-50">
-            <div className="flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm text-slate-500">
-              <svg className="h-4 w-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15.414a5 5 0 001.414 1.414m2.828-9.9a9 9 0 0112.728 0" />
-              </svg>
-              Lounge
-            </div>
+          <div className="space-y-1">
+            {['lounge', 'gaming', 'music', 'study'].map((room) => {
+              const isActive = location.pathname === `/voice/${room}`
+              return (
+                <Link
+                  key={room}
+                  to={`/voice/${room}`}
+                  className={`flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm transition-colors ${
+                    isActive
+                      ? 'bg-slate-700 text-white'
+                      : 'text-slate-400 hover:bg-slate-700/50 hover:text-slate-200'
+                  }`}
+                >
+                  <svg className="h-4 w-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15.414a5 5 0 001.414 1.414m2.828-9.9a9 9 0 0112.728 0" />
+                  </svg>
+                  {room.charAt(0).toUpperCase() + room.slice(1)}
+                </Link>
+              )
+            })}
           </div>
         </nav>
       </div>
