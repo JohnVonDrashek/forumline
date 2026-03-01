@@ -40,7 +40,47 @@ const demoPosts: PostWithAuthor[] = [
     created_at: new Date(Date.now() - 43200000).toISOString(),
     updated_at: new Date(Date.now() - 43200000).toISOString(),
     reply_to_id: null,
-    author: { id: '2', username: 'user1', display_name: 'Forum User', avatar_url: null, bio: null, created_at: '' },
+    author: { id: '2', username: 'sarah_dev', display_name: 'Sarah', avatar_url: null, bio: null, created_at: '' },
+  },
+  {
+    id: '3',
+    thread_id: '1',
+    author_id: '3',
+    content: "Hey everyone! Long-time forum enthusiast here. Really excited about the voice rooms feature - that's something I've wanted in a forum platform for ages.\n\nQuick question: will there be moderation tools for voice rooms?",
+    created_at: new Date(Date.now() - 28800000).toISOString(),
+    updated_at: new Date(Date.now() - 28800000).toISOString(),
+    reply_to_id: null,
+    author: { id: '3', username: 'mike_m', display_name: 'Mike', avatar_url: null, bio: null, created_at: '' },
+  },
+  {
+    id: '4',
+    thread_id: '1',
+    author_id: '1',
+    content: "Great question! Yes, voice rooms will have full moderation support:\n\n- Mute/unmute participants\n- Kick from room\n- Temporary bans\n- Priority speaker mode for announcements\n\nWe're also planning stage-style rooms for larger events.",
+    created_at: new Date(Date.now() - 21600000).toISOString(),
+    updated_at: new Date(Date.now() - 21600000).toISOString(),
+    reply_to_id: '3',
+    author: { id: '1', username: 'admin', display_name: 'Admin', avatar_url: null, bio: null, created_at: '' },
+  },
+  {
+    id: '5',
+    thread_id: '1',
+    author_id: '4',
+    content: "Just signed up! The UI looks really clean. Is there a dark mode? (asking the important questions here)",
+    created_at: new Date(Date.now() - 7200000).toISOString(),
+    updated_at: new Date(Date.now() - 7200000).toISOString(),
+    reply_to_id: null,
+    author: { id: '4', username: 'alex_tech', display_name: 'Alex', avatar_url: null, bio: null, created_at: '' },
+  },
+  {
+    id: '6',
+    thread_id: '1',
+    author_id: '2',
+    content: "You're already looking at it! The whole thing is dark mode by default. Love it.",
+    created_at: new Date(Date.now() - 3600000).toISOString(),
+    updated_at: new Date(Date.now() - 3600000).toISOString(),
+    reply_to_id: '5',
+    author: { id: '2', username: 'sarah_dev', display_name: 'Sarah', avatar_url: null, bio: null, created_at: '' },
   },
 ]
 
@@ -52,6 +92,7 @@ export default function Thread() {
   const [loading, setLoading] = useState(true)
   const [replyContent, setReplyContent] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [replyingTo, setReplyingTo] = useState<PostWithAuthor | null>(null)
 
   useEffect(() => {
     if (!isConfigured) {
@@ -125,18 +166,49 @@ export default function Thread() {
 
   const handleReply = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!user || !thread || !replyContent.trim() || !isConfigured) return
+    if (!thread || !replyContent.trim()) return
 
     setSubmitting(true)
+
+    // Demo mode - add post locally
+    if (!isConfigured) {
+      const newPost: PostWithAuthor = {
+        id: Date.now().toString(),
+        thread_id: thread.id,
+        author_id: user?.id || 'demo',
+        content: replyContent.trim(),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        reply_to_id: replyingTo?.id || null,
+        author: {
+          id: user?.id || 'demo',
+          username: user?.user_metadata?.username || 'you',
+          display_name: user?.user_metadata?.username || 'You',
+          avatar_url: null,
+          bio: null,
+          created_at: '',
+        },
+      }
+      setPosts(prev => [...prev, newPost])
+      setReplyContent('')
+      setReplyingTo(null)
+      setSubmitting(false)
+      return
+    }
+
+    // Supabase mode
+    if (!user) return
 
     const { error } = await supabase.from('posts').insert({
       thread_id: thread.id,
       author_id: user.id,
       content: replyContent.trim(),
+      reply_to_id: replyingTo?.id || null,
     })
 
     if (!error) {
       setReplyContent('')
+      setReplyingTo(null)
       // Update thread's last_post_at
       await supabase
         .from('threads')
@@ -215,40 +287,75 @@ export default function Thread() {
 
       {/* Posts */}
       <div className="space-y-4">
-        {posts.map((post, index) => (
-          <div key={post.id} className="rounded-xl border border-slate-700 bg-slate-800/50">
-            <div className="flex gap-4 p-4">
-              {/* Author */}
-              <div className="hidden shrink-0 sm:block">
-                <div className="h-12 w-12 rounded-full bg-indigo-500 flex items-center justify-center text-lg font-medium text-white">
-                  {post.author.display_name?.[0] || post.author.username[0]}
-                </div>
-              </div>
+        {posts.map((post) => {
+          const replyToPost = post.reply_to_id ? posts.find(p => p.id === post.reply_to_id) : null
+          const isOP = post.author_id === thread.author_id
 
-              {/* Content */}
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <span className="font-medium text-white">
-                    {post.author.display_name || post.author.username}
-                  </span>
-                  {index === 0 && (
-                    <span className="rounded bg-indigo-500/20 px-1.5 py-0.5 text-xs text-indigo-400">
-                      OP
-                    </span>
-                  )}
-                  <span className="text-sm text-slate-500">
-                    {formatDate(post.created_at)}
-                  </span>
+          return (
+            <div key={post.id} className="rounded-xl border border-slate-700 bg-slate-800/50">
+              {/* Reply-to indicator */}
+              {replyToPost && (
+                <div className="flex items-center gap-2 border-b border-slate-700/50 px-4 py-2 text-sm">
+                  <svg className="h-4 w-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                  </svg>
+                  <span className="text-slate-500">Replying to</span>
+                  <span className="font-medium text-slate-400">{replyToPost.author.display_name || replyToPost.author.username}</span>
                 </div>
-                <div className="mt-3 prose prose-invert prose-sm max-w-none text-slate-300">
-                  {post.content.split('\n').map((line, i) => (
-                    <p key={i} className="mb-2">{line || <br />}</p>
-                  ))}
+              )}
+
+              <div className="flex gap-4 p-4">
+                {/* Author */}
+                <div className="hidden shrink-0 sm:block">
+                  <div className="h-12 w-12 rounded-full bg-indigo-500 flex items-center justify-center text-lg font-medium text-white">
+                    {(post.author.display_name?.[0] || post.author.username[0]).toUpperCase()}
+                  </div>
+                </div>
+
+                {/* Content */}
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    {/* Mobile avatar */}
+                    <div className="h-6 w-6 rounded-full bg-indigo-500 flex items-center justify-center text-xs font-medium text-white sm:hidden">
+                      {(post.author.display_name?.[0] || post.author.username[0]).toUpperCase()}
+                    </div>
+                    <span className="font-medium text-white">
+                      {post.author.display_name || post.author.username}
+                    </span>
+                    {isOP && (
+                      <span className="rounded bg-indigo-500/20 px-1.5 py-0.5 text-xs text-indigo-400">
+                        OP
+                      </span>
+                    )}
+                    <span className="text-xs text-slate-500 sm:text-sm">
+                      {formatDate(post.created_at)}
+                    </span>
+                  </div>
+                  <div className="mt-3 text-slate-300">
+                    {post.content.split('\n').map((line, i) => (
+                      <p key={i} className="mb-2 last:mb-0">{line || <br />}</p>
+                    ))}
+                  </div>
+
+                  {/* Actions */}
+                  {!thread.is_locked && (
+                    <div className="mt-3 flex items-center gap-4">
+                      <button
+                        onClick={() => setReplyingTo(post)}
+                        className="flex items-center gap-1 text-sm text-slate-500 hover:text-indigo-400 transition-colors"
+                      >
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                        </svg>
+                        Reply
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
 
       {/* Reply Form */}
@@ -256,35 +363,54 @@ export default function Thread() {
         <div className="mt-6 rounded-lg border border-slate-700 bg-slate-800/50 p-4 text-center text-slate-400">
           This thread is locked. No new replies can be posted.
         </div>
-      ) : user ? (
+      ) : (
         <form onSubmit={handleReply} className="mt-6">
-          <div className="rounded-xl border border-slate-700 bg-slate-800/50 p-4">
-            <textarea
-              value={replyContent}
-              onChange={(e) => setReplyContent(e.target.value)}
-              placeholder="Write your reply..."
-              rows={4}
-              className="block w-full resize-none rounded-lg border border-slate-600 bg-slate-700 px-4 py-3 text-white placeholder-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-              disabled={!isConfigured}
-            />
-            <div className="mt-3 flex justify-end">
-              <button
-                type="submit"
-                disabled={submitting || !replyContent.trim() || !isConfigured}
-                className="rounded-lg bg-indigo-600 px-4 py-2 font-medium text-white hover:bg-indigo-500 disabled:opacity-50"
-              >
-                {submitting ? 'Posting...' : 'Post Reply'}
-              </button>
+          <div className="rounded-xl border border-slate-700 bg-slate-800/50">
+            {/* Reply-to indicator */}
+            {replyingTo && (
+              <div className="flex items-center justify-between border-b border-slate-700 px-4 py-2">
+                <div className="flex items-center gap-2 text-sm">
+                  <svg className="h-4 w-4 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                  </svg>
+                  <span className="text-slate-400">Replying to</span>
+                  <span className="font-medium text-white">{replyingTo.author.display_name || replyingTo.author.username}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setReplyingTo(null)}
+                  className="text-slate-500 hover:text-white"
+                >
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            )}
+
+            <div className="p-4">
+              <textarea
+                value={replyContent}
+                onChange={(e) => setReplyContent(e.target.value)}
+                placeholder={replyingTo ? `Reply to ${replyingTo.author.display_name || replyingTo.author.username}...` : "Write your reply..."}
+                rows={4}
+                className="block w-full resize-none rounded-lg border border-slate-600 bg-slate-700 px-4 py-3 text-white placeholder-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              />
+              <div className="mt-3 flex items-center justify-between">
+                <p className="text-xs text-slate-500">
+                  {!isConfigured && "Demo mode - replies are stored locally"}
+                </p>
+                <button
+                  type="submit"
+                  disabled={submitting || !replyContent.trim()}
+                  className="rounded-lg bg-indigo-600 px-4 py-2 font-medium text-white hover:bg-indigo-500 disabled:opacity-50"
+                >
+                  {submitting ? 'Posting...' : 'Post Reply'}
+                </button>
+              </div>
             </div>
           </div>
         </form>
-      ) : (
-        <div className="mt-6 rounded-lg border border-slate-700 bg-slate-800/50 p-4 text-center">
-          <p className="text-slate-400">
-            <Link to="/login" className="text-indigo-400 hover:text-indigo-300">Sign in</Link>
-            {' '}to reply to this thread.
-          </p>
-        </div>
       )}
     </div>
   )
