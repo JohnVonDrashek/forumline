@@ -1,0 +1,236 @@
+import { useState, useRef, useEffect } from 'react'
+import { useParams } from 'react-router-dom'
+import { useAuth } from '../lib/auth'
+
+interface ChatMessage {
+  id: string
+  channelId: string
+  authorId: string
+  authorName: string
+  authorAvatar: string
+  content: string
+  createdAt: string
+}
+
+interface ChatChannel {
+  id: string
+  name: string
+  description: string
+}
+
+// Demo channels
+const demoChannels: ChatChannel[] = [
+  { id: 'general', name: 'general', description: 'General chat for everyone' },
+  { id: 'random', name: 'random', description: 'Off-topic conversations' },
+  { id: 'introductions', name: 'introductions', description: 'Say hello to the community' },
+  { id: 'help', name: 'help', description: 'Get help from the community' },
+]
+
+// Demo messages
+const demoMessages: Record<string, ChatMessage[]> = {
+  general: [
+    { id: '1', channelId: 'general', authorId: '1', authorName: 'Admin', authorAvatar: 'A', content: 'Welcome to the general chat! 👋', createdAt: new Date(Date.now() - 3600000).toISOString() },
+    { id: '2', channelId: 'general', authorId: '2', authorName: 'Sarah', authorAvatar: 'S', content: 'Hey everyone! Excited to be here.', createdAt: new Date(Date.now() - 3000000).toISOString() },
+    { id: '3', channelId: 'general', authorId: '3', authorName: 'Mike', authorAvatar: 'M', content: 'This platform looks really cool. Love the forum + chat combo!', createdAt: new Date(Date.now() - 2400000).toISOString() },
+    { id: '4', channelId: 'general', authorId: '1', authorName: 'Admin', authorAvatar: 'A', content: 'Thanks Mike! We\'re working on voice rooms next 🎙️', createdAt: new Date(Date.now() - 1800000).toISOString() },
+    { id: '5', channelId: 'general', authorId: '4', authorName: 'Alex', authorAvatar: 'A', content: 'Voice rooms would be amazing. Any ETA?', createdAt: new Date(Date.now() - 1200000).toISOString() },
+    { id: '6', channelId: 'general', authorId: '2', authorName: 'Sarah', authorAvatar: 'S', content: 'Yeah I\'d love that feature too!', createdAt: new Date(Date.now() - 600000).toISOString() },
+  ],
+  random: [
+    { id: '1', channelId: 'random', authorId: '3', authorName: 'Mike', authorAvatar: 'M', content: 'Anyone else here a coffee addict? ☕', createdAt: new Date(Date.now() - 7200000).toISOString() },
+    { id: '2', channelId: 'random', authorId: '2', authorName: 'Sarah', authorAvatar: 'S', content: 'Guilty as charged 😅', createdAt: new Date(Date.now() - 6600000).toISOString() },
+    { id: '3', channelId: 'random', authorId: '4', authorName: 'Alex', authorAvatar: 'A', content: 'Tea person here, sorry not sorry', createdAt: new Date(Date.now() - 6000000).toISOString() },
+  ],
+  introductions: [
+    { id: '1', channelId: 'introductions', authorId: '1', authorName: 'Admin', authorAvatar: 'A', content: 'Welcome to introductions! Tell us about yourself 🙂', createdAt: new Date(Date.now() - 86400000).toISOString() },
+    { id: '2', channelId: 'introductions', authorId: '2', authorName: 'Sarah', authorAvatar: 'S', content: 'Hi! I\'m Sarah, a frontend developer from NYC. Love building UIs!', createdAt: new Date(Date.now() - 43200000).toISOString() },
+  ],
+  help: [
+    { id: '1', channelId: 'help', authorId: '1', authorName: 'Admin', authorAvatar: 'A', content: 'Need help? Ask here and someone will assist you!', createdAt: new Date(Date.now() - 172800000).toISOString() },
+  ],
+}
+
+export default function Chat() {
+  const { channelId = 'general' } = useParams()
+  const { user } = useAuth()
+  const [messages, setMessages] = useState<ChatMessage[]>(demoMessages[channelId] || [])
+  const [inputValue, setInputValue] = useState('')
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  const channel = demoChannels.find(c => c.id === channelId)
+
+  // Update messages when channel changes
+  useEffect(() => {
+    setMessages(demoMessages[channelId] || [])
+  }, [channelId])
+
+  // Scroll to bottom on new messages
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages])
+
+  // Focus input on mount
+  useEffect(() => {
+    inputRef.current?.focus()
+  }, [channelId])
+
+  const formatTime = (date: string) => {
+    return new Date(date).toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+    })
+  }
+
+  const formatDate = (date: string) => {
+    const d = new Date(date)
+    const today = new Date()
+    const yesterday = new Date(today)
+    yesterday.setDate(yesterday.getDate() - 1)
+
+    if (d.toDateString() === today.toDateString()) {
+      return 'Today'
+    } else if (d.toDateString() === yesterday.toDateString()) {
+      return 'Yesterday'
+    }
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  }
+
+  const handleSend = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!inputValue.trim()) return
+
+    const newMessage: ChatMessage = {
+      id: Date.now().toString(),
+      channelId,
+      authorId: user?.id || 'demo',
+      authorName: user?.user_metadata?.username || 'You',
+      authorAvatar: (user?.user_metadata?.username?.[0] || 'Y').toUpperCase(),
+      content: inputValue.trim(),
+      createdAt: new Date().toISOString(),
+    }
+
+    setMessages(prev => [...prev, newMessage])
+    setInputValue('')
+  }
+
+  // Group messages by date
+  const groupedMessages: { date: string; messages: ChatMessage[] }[] = []
+  messages.forEach(msg => {
+    const date = formatDate(msg.createdAt)
+    const lastGroup = groupedMessages[groupedMessages.length - 1]
+    if (lastGroup && lastGroup.date === date) {
+      lastGroup.messages.push(msg)
+    } else {
+      groupedMessages.push({ date, messages: [msg] })
+    }
+  })
+
+  return (
+    <div className="flex h-[calc(100vh-3.5rem)] flex-col">
+      {/* Channel Header */}
+      <div className="flex items-center gap-3 border-b border-slate-700 px-4 py-3">
+        <div className="flex items-center gap-2">
+          <span className="text-xl text-green-400">#</span>
+          <h1 className="text-lg font-semibold text-white">{channel?.name || channelId}</h1>
+        </div>
+        {channel?.description && (
+          <>
+            <div className="hidden h-6 w-px bg-slate-700 sm:block" />
+            <p className="hidden text-sm text-slate-400 sm:block">{channel.description}</p>
+          </>
+        )}
+      </div>
+
+      {/* Messages Area */}
+      <div className="flex-1 overflow-y-auto px-4 py-4">
+        {groupedMessages.map((group) => (
+          <div key={group.date}>
+            {/* Date Divider */}
+            <div className="relative my-4 flex items-center">
+              <div className="flex-1 border-t border-slate-700" />
+              <span className="mx-4 text-xs font-medium text-slate-500">{group.date}</span>
+              <div className="flex-1 border-t border-slate-700" />
+            </div>
+
+            {/* Messages */}
+            {group.messages.map((message, idx) => {
+              const prevMessage = group.messages[idx - 1]
+              const isGrouped = prevMessage &&
+                prevMessage.authorId === message.authorId &&
+                new Date(message.createdAt).getTime() - new Date(prevMessage.createdAt).getTime() < 300000
+
+              return (
+                <div
+                  key={message.id}
+                  className={`group flex gap-3 px-2 py-0.5 hover:bg-slate-800/50 rounded ${
+                    isGrouped ? 'mt-0' : 'mt-4'
+                  }`}
+                >
+                  {/* Avatar or spacer */}
+                  {isGrouped ? (
+                    <div className="w-10 shrink-0 flex items-center justify-center opacity-0 group-hover:opacity-100">
+                      <span className="text-[10px] text-slate-500">{formatTime(message.createdAt)}</span>
+                    </div>
+                  ) : (
+                    <div className="h-10 w-10 shrink-0 rounded-full bg-indigo-500 flex items-center justify-center text-sm font-medium text-white">
+                      {message.authorAvatar}
+                    </div>
+                  )}
+
+                  {/* Content */}
+                  <div className="min-w-0 flex-1">
+                    {!isGrouped && (
+                      <div className="flex items-baseline gap-2">
+                        <span className="font-medium text-white">{message.authorName}</span>
+                        <span className="text-xs text-slate-500">{formatTime(message.createdAt)}</span>
+                      </div>
+                    )}
+                    <p className="text-slate-300 break-words">{message.content}</p>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        ))}
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* Input Area */}
+      <div className="border-t border-slate-700 px-4 py-4">
+        <form onSubmit={handleSend}>
+          <div className="flex items-center gap-2 rounded-lg bg-slate-700 px-4 py-2">
+            <button
+              type="button"
+              className="shrink-0 text-slate-400 hover:text-slate-300"
+            >
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+            </button>
+            <input
+              ref={inputRef}
+              type="text"
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              placeholder={`Message #${channel?.name || channelId}`}
+              className="flex-1 bg-transparent text-white placeholder-slate-400 outline-none"
+            />
+            <button
+              type="submit"
+              disabled={!inputValue.trim()}
+              className="shrink-0 text-slate-400 hover:text-indigo-400 disabled:opacity-50 disabled:hover:text-slate-400"
+            >
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+              </svg>
+            </button>
+          </div>
+        </form>
+        <p className="mt-2 text-center text-xs text-slate-500">
+          Demo mode - messages are stored locally
+        </p>
+      </div>
+    </div>
+  )
+}

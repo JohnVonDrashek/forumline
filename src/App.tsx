@@ -8,6 +8,7 @@ import Category from './pages/Category'
 import Thread from './pages/Thread'
 import NewThread from './pages/NewThread'
 import Profile from './pages/Profile'
+import Chat from './pages/Chat'
 
 export default function App() {
   return (
@@ -21,6 +22,8 @@ export default function App() {
           <Route path="c/:categorySlug/new" element={<NewThread />} />
           <Route path="t/:threadId" element={<Thread />} />
           <Route path="u/:username" element={<Profile />} />
+          <Route path="chat" element={<Chat />} />
+          <Route path="chat/:channelId" element={<Chat />} />
         </Route>
       </Routes>
     </AuthProvider>

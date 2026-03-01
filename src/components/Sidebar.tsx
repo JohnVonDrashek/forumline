@@ -71,22 +71,28 @@ export default function Sidebar() {
           })}
         </div>
 
-        {/* Future: Chat Channels */}
+        {/* Chat Channels */}
         <div className="mt-6 mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-slate-500">
           Chat Channels
-          <span className="ml-2 rounded bg-slate-700 px-1.5 py-0.5 text-[10px] font-normal normal-case text-slate-400">
-            Soon
-          </span>
         </div>
-        <div className="space-y-1 opacity-50">
-          <div className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-500">
-            <span className="text-green-400">#</span>
-            general
-          </div>
-          <div className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-500">
-            <span className="text-green-400">#</span>
-            random
-          </div>
+        <div className="space-y-1">
+          {['general', 'random', 'introductions', 'help'].map((channel) => {
+            const isActive = location.pathname === `/chat/${channel}`
+            return (
+              <Link
+                key={channel}
+                to={`/chat/${channel}`}
+                className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors ${
+                  isActive
+                    ? 'bg-slate-700 text-white'
+                    : 'text-slate-400 hover:bg-slate-700/50 hover:text-slate-200'
+                }`}
+              >
+                <span className="text-green-400">#</span>
+                {channel}
+              </Link>
+            )
+          })}
         </div>
 
         {/* Future: Voice Rooms */}
