@@ -12,6 +12,7 @@ import Chat from './pages/Chat'
 import Search from './pages/Search'
 import Voice from './pages/Voice'
 import DirectMessages from './pages/DirectMessages'
+import Bookmarks from './pages/Bookmarks'
 
 export default function App() {
   return (
@@ -32,6 +33,7 @@ export default function App() {
           <Route path="voice/:roomId" element={<Voice />} />
           <Route path="dm" element={<DirectMessages />} />
           <Route path="dm/:recipientId" element={<DirectMessages />} />
+          <Route path="bookmarks" element={<Bookmarks />} />
         </Route>
       </Routes>
     </AuthProvider>

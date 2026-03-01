@@ -378,17 +378,54 @@ export default function Thread() {
 
       {/* Thread Header */}
       <div className="mb-6">
-        <div className="flex items-center gap-2">
-          {thread.is_pinned && (
-            <span className="rounded bg-amber-500/20 px-2 py-0.5 text-xs font-medium text-amber-400">
-              Pinned
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            {thread.is_pinned && (
+              <span className="rounded bg-amber-500/20 px-2 py-0.5 text-xs font-medium text-amber-400">
+                Pinned
+              </span>
+            )}
+            {thread.is_locked && (
+              <span className="rounded bg-red-500/20 px-2 py-0.5 text-xs font-medium text-red-400">
+                Locked
+              </span>
+            )}
+          </div>
+          <button
+            onClick={() => {
+              const bookmarks = JSON.parse(localStorage.getItem('bookmarks') || '[]')
+              const isBookmarked = bookmarks.some((b: { id: string }) => b.id === thread.id)
+              if (isBookmarked) {
+                const updated = bookmarks.filter((b: { id: string }) => b.id !== thread.id)
+                localStorage.setItem('bookmarks', JSON.stringify(updated))
+              } else {
+                bookmarks.push({
+                  id: thread.id,
+                  title: thread.title,
+                  category: thread.category.name,
+                  categorySlug: thread.category.slug,
+                  author: thread.author.display_name || thread.author.username,
+                  createdAt: thread.created_at,
+                  bookmarkedAt: new Date().toISOString(),
+                })
+                localStorage.setItem('bookmarks', JSON.stringify(bookmarks))
+              }
+              // Force re-render
+              setThread({ ...thread })
+            }}
+            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm transition-colors ${
+              JSON.parse(localStorage.getItem('bookmarks') || '[]').some((b: { id: string }) => b.id === thread.id)
+                ? 'bg-amber-500/20 text-amber-400'
+                : 'text-slate-400 hover:bg-slate-700 hover:text-white'
+            }`}
+          >
+            <svg className="h-4 w-4" fill={JSON.parse(localStorage.getItem('bookmarks') || '[]').some((b: { id: string }) => b.id === thread.id) ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+            </svg>
+            <span className="hidden sm:inline">
+              {JSON.parse(localStorage.getItem('bookmarks') || '[]').some((b: { id: string }) => b.id === thread.id) ? 'Bookmarked' : 'Bookmark'}
             </span>
-          )}
-          {thread.is_locked && (
-            <span className="rounded bg-red-500/20 px-2 py-0.5 text-xs font-medium text-red-400">
-              Locked
-            </span>
-          )}
+          </button>
         </div>
         <h1 className="mt-2 text-2xl font-bold text-white">{thread.title}</h1>
         <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-slate-400 sm:gap-3">

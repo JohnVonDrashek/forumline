@@ -59,7 +59,7 @@ export default function MobileSidebar({ isOpen, onClose, categories }: MobileSid
         </div>
 
         <nav className="h-[calc(100vh-3.5rem)] overflow-y-auto p-4">
-          <div className="mb-4">
+          <div className="mb-4 space-y-1">
             <Link
               to="/"
               className={`flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
@@ -72,6 +72,19 @@ export default function MobileSidebar({ isOpen, onClose, categories }: MobileSid
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
               </svg>
               Home
+            </Link>
+            <Link
+              to="/bookmarks"
+              className={`flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+                location.pathname === '/bookmarks'
+                  ? 'bg-indigo-600 text-white'
+                  : 'text-slate-300 hover:bg-slate-700 hover:text-white'
+              }`}
+            >
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+              </svg>
+              Bookmarks
             </Link>
           </div>
 
