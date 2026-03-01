@@ -1,0 +1,202 @@
+import { useState, useEffect } from 'react'
+import { useParams, useNavigate, Link } from 'react-router-dom'
+import { supabase, isConfigured } from '../lib/supabase'
+import { useAuth } from '../lib/auth'
+import type { Category } from '../types'
+
+const demoCategories: Record<string, Category> = {
+  general: { id: '1', name: 'General', slug: 'general', description: 'General discussion', sort_order: 0, created_at: '' },
+  announcements: { id: '2', name: 'Announcements', slug: 'announcements', description: 'Official announcements', sort_order: 1, created_at: '' },
+  help: { id: '3', name: 'Help & Support', slug: 'help', description: 'Get help from the community', sort_order: 2, created_at: '' },
+  showcase: { id: '4', name: 'Showcase', slug: 'showcase', description: 'Show off your projects', sort_order: 3, created_at: '' },
+}
+
+export default function NewThread() {
+  const { categorySlug } = useParams()
+  const navigate = useNavigate()
+  const { user } = useAuth()
+  const [category, setCategory] = useState<Category | null>(demoCategories[categorySlug || ''] || null)
+  const [title, setTitle] = useState('')
+  const [content, setContent] = useState('')
+  const [error, setError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+
+  useEffect(() => {
+    if (!user) {
+      navigate('/login')
+      return
+    }
+
+    if (!isConfigured) {
+      setCategory(demoCategories[categorySlug || ''] || null)
+      return
+    }
+
+    const fetchCategory = async () => {
+      const { data } = await supabase
+        .from('categories')
+        .select('*')
+        .eq('slug', categorySlug!)
+        .single()
+      if (data) setCategory(data)
+    }
+
+    fetchCategory()
+  }, [categorySlug, user, navigate])
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    if (!isConfigured) {
+      setError('Supabase is not configured. Please set up your environment variables.')
+      return
+    }
+
+    if (!user || !category) return
+
+    if (title.length < 5) {
+      setError('Title must be at least 5 characters')
+      return
+    }
+
+    if (content.length < 10) {
+      setError('Content must be at least 10 characters')
+      return
+    }
+
+    setSubmitting(true)
+    setError('')
+
+    // Create slug from title
+    const slug = title
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '')
+      .slice(0, 50)
+
+    // Create thread
+    const { data: thread, error: threadError } = await supabase
+      .from('threads')
+      .insert({
+        category_id: category.id,
+        author_id: user.id,
+        title,
+        slug,
+        post_count: 1,
+        last_post_at: new Date().toISOString(),
+      })
+      .select()
+      .single()
+
+    if (threadError) {
+      setError(threadError.message)
+      setSubmitting(false)
+      return
+    }
+
+    // Create first post
+    const { error: postError } = await supabase.from('posts').insert({
+      thread_id: thread.id,
+      author_id: user.id,
+      content,
+    })
+
+    if (postError) {
+      setError(postError.message)
+      setSubmitting(false)
+      return
+    }
+
+    navigate(`/t/${thread.id}`)
+  }
+
+  if (!category) {
+    return (
+      <div className="mx-auto max-w-2xl text-center">
+        <h1 className="text-2xl font-bold text-white">Category not found</h1>
+        <Link to="/" className="mt-4 inline-block text-indigo-400 hover:text-indigo-300">
+          Go back home
+        </Link>
+      </div>
+    )
+  }
+
+  return (
+    <div className="mx-auto max-w-2xl">
+      {/* Breadcrumb */}
+      <div className="mb-6 flex items-center gap-2 text-sm text-slate-400">
+        <Link to="/" className="hover:text-white">Home</Link>
+        <span>/</span>
+        <Link to={`/c/${category.slug}`} className="hover:text-white">{category.name}</Link>
+        <span>/</span>
+        <span className="text-white">New Thread</span>
+      </div>
+
+      <div className="rounded-xl border border-slate-700 bg-slate-800/50 p-6">
+        <h1 className="text-2xl font-bold text-white">Start a new discussion</h1>
+        <p className="mt-1 text-slate-400">in {category.name}</p>
+
+        {!isConfigured && (
+          <div className="mt-4 rounded-lg bg-amber-500/10 border border-amber-500/20 p-3 text-sm text-amber-400">
+            <strong>Demo Mode:</strong> Creating threads requires Supabase configuration.
+          </div>
+        )}
+
+        {error && (
+          <div className="mt-4 rounded-lg bg-red-500/10 border border-red-500/20 p-3 text-sm text-red-400">
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+          <div>
+            <label htmlFor="title" className="block text-sm font-medium text-slate-300">
+              Title
+            </label>
+            <input
+              type="text"
+              id="title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="mt-1 block w-full rounded-lg border border-slate-600 bg-slate-700 px-4 py-2 text-white placeholder-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              placeholder="What's on your mind?"
+              required
+            />
+          </div>
+
+          <div>
+            <label htmlFor="content" className="block text-sm font-medium text-slate-300">
+              Content
+            </label>
+            <textarea
+              id="content"
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              rows={8}
+              className="mt-1 block w-full resize-none rounded-lg border border-slate-600 bg-slate-700 px-4 py-3 text-white placeholder-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              placeholder="Share your thoughts..."
+              required
+            />
+          </div>
+
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={() => navigate(-1)}
+              className="rounded-lg border border-slate-600 px-4 py-2 text-slate-300 hover:bg-slate-700"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={submitting || !isConfigured}
+              className="rounded-lg bg-indigo-600 px-4 py-2 font-medium text-white hover:bg-indigo-500 disabled:opacity-50"
+            >
+              {submitting ? 'Creating...' : 'Create Thread'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
