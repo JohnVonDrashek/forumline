@@ -40,6 +40,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return data
   }
 
+  const ensureProfile = async (supaUser: User): Promise<Profile | null> => {
+    // Try to fetch existing profile first
+    let prof = await fetchProfile(supaUser.id)
+    if (prof) return prof
+
+    // Profile doesn't exist — create it (covers missing DB trigger, OAuth, etc.)
+    const username = supaUser.user_metadata?.username
+      || supaUser.email?.split('@')[0]
+      || `user_${supaUser.id.slice(0, 8)}`
+    const displayName = supaUser.user_metadata?.display_name || username
+
+    const { error } = await supabase.from('profiles').upsert({
+      id: supaUser.id,
+      username,
+      display_name: displayName,
+      avatar_url: supaUser.user_metadata?.avatar_url || null,
+    }, { onConflict: 'id' })
+
+    if (error) {
+      console.error('Failed to create profile:', error.message)
+      return null
+    }
+
+    // Fetch the newly created profile
+    return fetchProfile(supaUser.id)
+  }
+
   const toAppUser = (supaUser: User | null, prof?: Profile | null): AppUser | null => {
     if (!supaUser) return null
     return {
@@ -62,7 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Check existing session
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
-        const prof = await fetchProfile(session.user.id)
+        const prof = await ensureProfile(session.user)
         setUser(toAppUser(session.user, prof))
       }
       setLoading(false)
@@ -72,7 +99,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
         if (session?.user) {
-          const prof = await fetchProfile(session.user.id)
+          const prof = await ensureProfile(session.user)
           setUser(toAppUser(session.user, prof))
         } else {
           setUser(null)
@@ -96,14 +123,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signUp = async (email: string, password: string, username: string) => {
     if (!isConfigured) return { error: new Error('Supabase not configured') }
 
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: { username, display_name: username },
       },
     })
-    return { error: error ? new Error(error.message) : null }
+    if (error) return { error: new Error(error.message) }
+
+    // Create profile immediately (don't rely solely on DB trigger)
+    if (data.user) {
+      const { error: profileError } = await supabase.from('profiles').upsert({
+        id: data.user.id,
+        username,
+        display_name: username,
+      }, { onConflict: 'id' })
+
+      if (profileError) {
+        return { error: new Error(profileError.message) }
+      }
+    }
+
+    return { error: null }
   }
 
   const signOut = async () => {

@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS profiles (
   avatar_url TEXT,
   bio TEXT,
   website TEXT,
+  is_admin BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -210,7 +211,10 @@ INSERT INTO voice_rooms (name, slug) VALUES
   ('Music', 'music')
 ON CONFLICT (slug) DO NOTHING;
 
--- Trigger to auto-create profile on user signup
+`
+
+// Trigger function — run separately since it contains semicolons inside $$ block
+const triggerFnSql = `
 CREATE OR REPLACE FUNCTION handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -224,7 +228,9 @@ BEGIN
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+`
 
+const triggerSql = `
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
@@ -250,6 +256,17 @@ async function main() {
       console.error(`  ✗ ${preview}...`)
       console.error(`    Error: ${err.message}`)
     }
+  }
+
+  // Run trigger function and trigger as single statements (contain semicolons inside $$ block)
+  console.log('\nCreating user signup trigger...')
+  try {
+    await client.query(triggerFnSql)
+    console.log('  ✓ handle_new_user() function created')
+    await client.query(triggerSql)
+    console.log('  ✓ on_auth_user_created trigger created')
+  } catch (err) {
+    console.error(`  ✗ Trigger: ${err.message}`)
   }
 
   console.log('\nDone!')
