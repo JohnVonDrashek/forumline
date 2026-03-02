@@ -254,7 +254,7 @@ export default function Admin() {
                       <tr key={u.id} className="hover:bg-slate-700/30">
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-3">
-                            <Avatar seed={u.id} type="user" size={32} />
+                            <Avatar seed={u.id} type="user" avatarUrl={u.avatar_url} size={32} />
                             <div>
                               <span className="font-medium text-white">{u.display_name || u.username}</span>
                               <p className="text-xs text-slate-400">@{u.username}</p>

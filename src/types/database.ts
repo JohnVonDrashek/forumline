@@ -76,6 +76,7 @@ export type Database = {
           title: string
           slug: string
           content: string | null
+          image_url: string | null
           is_pinned: boolean
           is_locked: boolean
           view_count: number
@@ -91,6 +92,7 @@ export type Database = {
           title: string
           slug: string
           content?: string | null
+          image_url?: string | null
           is_pinned?: boolean
           is_locked?: boolean
           view_count?: number
@@ -104,6 +106,7 @@ export type Database = {
           title?: string
           slug?: string
           content?: string | null
+          image_url?: string | null
           is_pinned?: boolean
           is_locked?: boolean
           view_count?: number

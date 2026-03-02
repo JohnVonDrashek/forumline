@@ -10,6 +10,7 @@ interface Conversation {
   recipientId: string
   recipientName: string
   recipientAvatar: string
+  recipientAvatarUrl?: string | null
   lastMessage: string
   lastMessageTime: Date
   unreadCount: number
@@ -180,6 +181,7 @@ export default function DirectMessages() {
             recipientId: other.id,
             recipientName: other.display_name || other.username,
             recipientAvatar: (other.display_name?.[0] || other.username[0]).toUpperCase(),
+            recipientAvatarUrl: other.avatar_url,
             lastMessage: dm.content,
             lastMessageTime: new Date(dm.created_at),
             unreadCount: 0,
@@ -393,6 +395,7 @@ export default function DirectMessages() {
     recipientId: recipientProfile.id,
     recipientName: recipientProfile.display_name || recipientProfile.username,
     recipientAvatar: (recipientProfile.display_name?.[0] || recipientProfile.username[0]).toUpperCase(),
+    recipientAvatarUrl: recipientProfile.avatar_url,
     lastMessage: '',
     lastMessageTime: new Date(),
     unreadCount: 0,
@@ -437,7 +440,7 @@ export default function DirectMessages() {
                   }`}
                 >
                   <div className="relative">
-                    <Avatar seed={conversation.recipientId} type="user" size={40} />
+                    <Avatar seed={conversation.recipientId} type="user" avatarUrl={conversation.recipientAvatarUrl} size={40} />
                     {conversation.unreadCount > 0 && (
                       <div className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-indigo-500 text-xs font-medium text-white">
                         {conversation.unreadCount}
@@ -477,7 +480,7 @@ export default function DirectMessages() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                   </svg>
                 </Link>
-                <Avatar seed={activeConversation.recipientId} type="user" size={32} />
+                <Avatar seed={activeConversation.recipientId} type="user" avatarUrl={activeConversation.recipientAvatarUrl} size={32} />
                 <div>
                   <h3 className="font-medium text-white">{activeConversation.recipientName}</h3>
                 </div>
@@ -610,7 +613,7 @@ export default function DirectMessages() {
                   onClick={() => handleSelectUser(profile)}
                   className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-slate-700/50"
                 >
-                  <Avatar seed={profile.id} type="user" size={40} className="shrink-0" />
+                  <Avatar seed={profile.id} type="user" avatarUrl={profile.avatar_url} size={40} className="shrink-0" />
                   <div className="min-w-0">
                     <div className="font-medium text-white">
                       {profile.display_name || profile.username}

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { supabase, isConfigured } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
+import { uploadDefaultAvatar } from '../lib/avatars'
 import type { Category } from '../types'
 
 const demoCategories: Record<string, Category> = {
@@ -106,6 +107,13 @@ export default function NewThread() {
       setSubmitting(false)
       return
     }
+
+    // Generate and upload a default DiceBear thread image (fire-and-forget)
+    uploadDefaultAvatar(thread.id, 'thread').then(imageUrl => {
+      if (imageUrl) {
+        supabase.from('threads').update({ image_url: imageUrl }).eq('id', thread.id)
+      }
+    })
 
     navigate(`/t/${thread.id}`)
   }

@@ -19,6 +19,7 @@ const demoThreads: ThreadWithAuthor[] = [
     post_count: 42,
     last_post_at: new Date().toISOString(),
     content: '',
+    image_url: null,
     view_count: 0,
     author: { id: '1', username: 'admin', display_name: 'Admin', avatar_url: null, bio: null, website: null, is_admin: false, created_at: '', updated_at: '2025-01-01' },
     category: { id: '1', name: 'General', slug: 'general', description: '', sort_order: 0, created_at: '' },
@@ -36,6 +37,7 @@ const demoThreads: ThreadWithAuthor[] = [
     post_count: 15,
     last_post_at: new Date(Date.now() - 3600000).toISOString(),
     content: '',
+    image_url: null,
     view_count: 0,
     author: { id: '1', username: 'admin', display_name: 'Admin', avatar_url: null, bio: null, website: null, is_admin: false, created_at: '', updated_at: '2025-01-01' },
     category: { id: '2', name: 'Announcements', slug: 'announcements', description: '', sort_order: 1, created_at: '' },
@@ -53,6 +55,7 @@ const demoThreads: ThreadWithAuthor[] = [
     post_count: 28,
     last_post_at: new Date(Date.now() - 7200000).toISOString(),
     content: '',
+    image_url: null,
     view_count: 0,
     author: { id: '2', username: 'user1', display_name: 'Forum User', avatar_url: null, bio: null, website: null, is_admin: false, created_at: '', updated_at: '2025-01-01' },
     category: { id: '1', name: 'General', slug: 'general', description: '', sort_order: 0, created_at: '' },
@@ -133,7 +136,7 @@ export default function Home() {
                 className="flex items-start gap-3 px-3 py-3 transition-colors hover:bg-slate-700/30 sm:gap-4 sm:px-4 sm:py-4"
               >
                 {/* Thread Avatar */}
-                <Avatar seed={thread.id} type="thread" size={40} className="h-9 w-9 shrink-0 sm:h-10 sm:w-10" />
+                <Avatar seed={thread.id} type="thread" avatarUrl={thread.image_url} size={40} className="h-9 w-9 shrink-0 sm:h-10 sm:w-10" />
 
                 {/* Content */}
                 <div className="min-w-0 flex-1">
@@ -152,7 +155,7 @@ export default function Home() {
                   </h3>
                   <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-slate-400 sm:gap-3 sm:text-sm">
                     <span className="flex items-center gap-1">
-                      <Avatar seed={thread.author_id} type="user" size={16} />
+                      <Avatar seed={thread.author_id} type="user" avatarUrl={thread.author.avatar_url} size={16} />
                       {thread.author.display_name || thread.author.username}
                     </span>
                     <span className="hidden sm:inline">·</span>

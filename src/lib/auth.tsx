@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import { supabase, isConfigured } from './supabase'
+import { uploadDefaultAvatar } from './avatars'
 import type { Profile } from '../types/database'
 import type { User } from '@supabase/supabase-js'
 
@@ -61,6 +62,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error) {
       console.error('Failed to create profile:', error.message)
       return null
+    }
+
+    // Generate and upload a default DiceBear avatar
+    const avatarUrl = await uploadDefaultAvatar(supaUser.id, 'user')
+    if (avatarUrl) {
+      await supabase.from('profiles').update({ avatar_url: avatarUrl }).eq('id', supaUser.id)
     }
 
     // Fetch the newly created profile

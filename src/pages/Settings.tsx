@@ -1,7 +1,9 @@
-import { useState, useEffect, type ReactNode } from 'react'
+import { useState, useEffect, useRef, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
 import { supabase, isConfigured } from '../lib/supabase'
+import { uploadAvatar } from '../lib/avatars'
+import Avatar from '../components/Avatar'
 
 type Tab = 'profile' | 'account' | 'notifications' | 'appearance'
 
@@ -15,6 +17,9 @@ export default function Settings() {
   const [displayName, setDisplayName] = useState('')
   const [bio, setBio] = useState('')
   const [website, setWebsite] = useState('')
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
+  const [avatarUploading, setAvatarUploading] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Account state
   const [email, setEmail] = useState('')
@@ -28,6 +33,7 @@ export default function Settings() {
       setDisplayName(profile.display_name || profile.username || '')
       setBio(profile.bio || '')
       setWebsite(profile.website || '')
+      setAvatarUrl(profile.avatar_url || null)
     } else if (user) {
       setDisplayName(user.user_metadata?.username || 'Demo User')
     } else if (!isConfigured) {
@@ -192,12 +198,39 @@ export default function Settings() {
               </div>
 
               <div className="flex items-center gap-4">
-                <div className="flex h-20 w-20 items-center justify-center rounded-full bg-indigo-600 text-2xl font-bold text-white">
-                  {displayName.charAt(0).toUpperCase()}
+                <Avatar seed={user?.id || 'demo'} type="user" avatarUrl={avatarUrl} size={80} />
+                <div>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0]
+                      if (!file || !user) return
+                      setAvatarUploading(true)
+                      setError('')
+                      const path = `user/${user.id}/custom.png`
+                      const url = await uploadAvatar(file, path)
+                      if (url) {
+                        await supabase.from('profiles').update({ avatar_url: url }).eq('id', user.id)
+                        setAvatarUrl(url)
+                      } else {
+                        setError('Failed to upload avatar')
+                      }
+                      setAvatarUploading(false)
+                      e.target.value = ''
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={avatarUploading}
+                    className="rounded-lg bg-slate-700 px-4 py-2 text-sm font-medium text-white hover:bg-slate-600 disabled:opacity-50"
+                  >
+                    {avatarUploading ? 'Uploading...' : 'Change Avatar'}
+                  </button>
                 </div>
-                <button className="rounded-lg bg-slate-700 px-4 py-2 text-sm font-medium text-white hover:bg-slate-600">
-                  Change Avatar
-                </button>
               </div>
 
               <div className="space-y-4">

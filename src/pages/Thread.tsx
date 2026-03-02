@@ -2,6 +2,7 @@ import { useParams, Link, useSearchParams } from 'react-router-dom'
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { supabase, isConfigured } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
+import Avatar from '../components/Avatar'
 import type { ThreadWithAuthor, PostWithAuthor } from '../types'
 
 const POSTS_PER_PAGE = 5
@@ -20,6 +21,7 @@ const demoThread: ThreadWithAuthor = {
   post_count: 12,
   last_post_at: new Date().toISOString(),
   content: '',
+  image_url: null,
   view_count: 0,
   author: { id: '1', username: 'admin', display_name: 'Admin', avatar_url: null, bio: null, website: null, is_admin: false, created_at: '', updated_at: '2025-01-01' },
   category: { id: '1', name: 'General', slug: 'general', description: '', sort_order: 0, created_at: '' },
@@ -614,17 +616,15 @@ export default function Thread() {
               <div className="flex gap-4 p-4">
                 {/* Author */}
                 <div className="hidden shrink-0 sm:block">
-                  <div className="h-12 w-12 rounded-full bg-indigo-500 flex items-center justify-center text-lg font-medium text-white">
-                    {(post.author.display_name?.[0] || post.author.username[0]).toUpperCase()}
-                  </div>
+                  <Avatar seed={post.author.id} type="user" avatarUrl={post.author.avatar_url} size={48} />
                 </div>
 
                 {/* Content */}
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     {/* Mobile avatar */}
-                    <div className="h-6 w-6 rounded-full bg-indigo-500 flex items-center justify-center text-xs font-medium text-white sm:hidden">
-                      {(post.author.display_name?.[0] || post.author.username[0]).toUpperCase()}
+                    <div className="sm:hidden">
+                      <Avatar seed={post.author.id} type="user" avatarUrl={post.author.avatar_url} size={24} />
                     </div>
                     <span className="font-medium text-white">
                       {post.author.display_name || post.author.username}

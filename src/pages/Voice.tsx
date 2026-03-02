@@ -255,7 +255,7 @@ export default function Voice() {
               <div className={`relative h-16 w-16 rounded-full ${
                 voice.isSpeaking ? 'ring-2 ring-green-400 animate-pulse' : ''
               }`}>
-                <Avatar seed={user.id} type="user" size={64} />
+                <Avatar seed={user.id} type="user" avatarUrl={user.avatar} size={64} />
                 {voice.isMuted && (
                   <div className="absolute -bottom-1 -right-1 rounded-full bg-red-500 p-1">
                     <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">

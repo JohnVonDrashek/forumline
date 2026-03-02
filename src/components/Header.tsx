@@ -368,7 +368,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
                 to={`/u/${user.user_metadata?.username || 'me'}`}
                 className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-slate-300 hover:bg-slate-700 sm:px-3"
               >
-                <Avatar seed={user.id} type="user" size={24} />
+                <Avatar seed={user.id} type="user" avatarUrl={user.avatar} size={24} />
                 <span className="hidden sm:inline">{user.user_metadata?.username || user.email}</span>
               </Link>
               <button

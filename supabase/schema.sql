@@ -75,6 +75,7 @@ create table public.threads (
   slug text not null,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   updated_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  image_url text,
   is_pinned boolean default false,
   is_locked boolean default false,
   post_count integer default 0,
