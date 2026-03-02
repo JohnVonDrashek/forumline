@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { AccessToken } from 'livekit-server-sdk'
+import { AccessToken, RoomServiceClient } from 'livekit-server-sdk'
 import { createClient } from '@supabase/supabase-js'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -34,8 +34,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Generate LiveKit token
   const apiKey = process.env.LIVEKIT_API_KEY
   const apiSecret = process.env.LIVEKIT_API_SECRET
-  if (!apiKey || !apiSecret) {
+  const livekitUrl = process.env.LIVEKIT_URL
+  if (!apiKey || !apiSecret || !livekitUrl) {
     return res.status(500).json({ error: 'LiveKit not configured' })
+  }
+
+  // Remove user from any existing rooms (enforce one room at a time, clean up ghosts)
+  const httpHost = livekitUrl.replace('wss://', 'https://').replace('ws://', 'http://')
+  const roomService = new RoomServiceClient(httpHost, apiKey, apiSecret)
+  try {
+    const activeRooms = await roomService.listRooms()
+    await Promise.all(activeRooms.map(async (room) => {
+      try {
+        await roomService.removeParticipant(room.name, user.id)
+      } catch {
+        // Not in this room — ignore
+      }
+    }))
+  } catch {
+    // If listing fails, continue anyway
   }
 
   const at = new AccessToken(apiKey, apiSecret, {
