@@ -119,6 +119,10 @@ export default function Home() {
 
         {loading ? (
           <div className="p-8 text-center text-slate-400">Loading...</div>
+        ) : threads.length === 0 ? (
+          <div className="p-8 text-center text-slate-400">
+            No discussions yet. Be the first to start one!
+          </div>
         ) : (
           <div className="divide-y divide-slate-700/50">
             {threads.map((thread) => (
