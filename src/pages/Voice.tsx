@@ -1,6 +1,8 @@
-import { useState, useEffect } from 'react'
-import { useParams } from 'react-router-dom'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { useParams, Link } from 'react-router-dom'
+import { Room, RoomEvent, Track, Participant } from 'livekit-client'
 import { supabase, isConfigured } from '../lib/supabase'
+import { useAuth } from '../lib/auth'
 import type { VoiceRoom } from '../types'
 
 interface VoiceParticipant {
@@ -66,12 +68,30 @@ const demoRooms: RoomWithParticipants[] = [
   },
 ]
 
+function participantToVoice(p: Participant): VoiceParticipant {
+  const audioTrack = p.getTrackPublications().find(
+    t => t.track?.source === Track.Source.Microphone,
+  )
+  return {
+    id: p.identity,
+    name: p.name || p.identity,
+    avatar: (p.name || p.identity).charAt(0).toUpperCase(),
+    isSpeaking: p.isSpeaking,
+    isMuted: audioTrack?.isMuted ?? true,
+  }
+}
+
 export default function Voice() {
   const { roomId } = useParams()
+  const { user } = useAuth()
   const [rooms, setRooms] = useState<RoomWithParticipants[]>(demoRooms)
   const [isConnected, setIsConnected] = useState(false)
   const [isMuted, setIsMuted] = useState(false)
   const [isDeafened, setIsDeafened] = useState(false)
+  const [participants, setParticipants] = useState<VoiceParticipant[]>([])
+  const [connectError, setConnectError] = useState<string | null>(null)
+  const [isConnecting, setIsConnecting] = useState(false)
+  const livekitRoomRef = useRef<Room | null>(null)
 
   useEffect(() => {
     if (!isConfigured) return
@@ -95,28 +115,222 @@ export default function Voice() {
     fetchRooms()
   }, [])
 
+  // Fetch participant counts for all rooms on the list view
+  useEffect(() => {
+    if (!isConfigured || roomId) return
+
+    const fetchAllParticipants = async () => {
+      try {
+        const updates = await Promise.all(
+          rooms.map(async (room) => {
+            const slug = room.slug || room.id
+            const resp = await fetch(`/api/livekit-participants?room=${encodeURIComponent(slug)}`)
+            if (!resp.ok) return { slug, participants: [] }
+            const data = await resp.json()
+            return { slug, participants: data.participants || [] }
+          })
+        )
+        setRooms(prev => prev.map(room => {
+          const match = updates.find(u => u.slug === (room.slug || room.id))
+          if (!match || match.participants.length === 0) return { ...room, participants: [] }
+          return {
+            ...room,
+            participants: match.participants.map((p: { identity: string; name: string }) => ({
+              id: p.identity,
+              name: p.name || p.identity,
+              avatar: (p.name || p.identity).charAt(0).toUpperCase(),
+              isSpeaking: false,
+              isMuted: false,
+            })),
+          }
+        }))
+      } catch {
+        // ignore
+      }
+    }
+
+    fetchAllParticipants()
+    const interval = setInterval(fetchAllParticipants, 10000)
+    return () => clearInterval(interval)
+  }, [roomId, rooms.length])
+
+  // Fetch participants from server when viewing a room but not connected
+  useEffect(() => {
+    if (!isConfigured || !roomId || isConnected) return
+
+    const roomSlug = rooms.find(r => r.slug === roomId || r.id === roomId)?.slug || roomId
+
+    const fetchParticipants = async () => {
+      try {
+        const resp = await fetch(`/api/livekit-participants?room=${encodeURIComponent(roomSlug)}`)
+        if (!resp.ok) return
+        const data = await resp.json()
+        const mapped: VoiceParticipant[] = (data.participants || []).map((p: { identity: string; name: string }) => ({
+          id: p.identity,
+          name: p.name || p.identity,
+          avatar: (p.name || p.identity).charAt(0).toUpperCase(),
+          isSpeaking: false,
+          isMuted: false,
+        }))
+        setParticipants(mapped)
+      } catch {
+        // ignore fetch errors
+      }
+    }
+
+    fetchParticipants()
+    const interval = setInterval(fetchParticipants, 5000)
+    return () => clearInterval(interval)
+  }, [roomId, isConnected, rooms])
+
+  // Cleanup LiveKit room on unmount or room change
+  useEffect(() => {
+    return () => {
+      if (livekitRoomRef.current) {
+        livekitRoomRef.current.disconnect()
+        livekitRoomRef.current = null
+      }
+    }
+  }, [roomId])
+
+  const updateParticipants = useCallback(() => {
+    const room = livekitRoomRef.current
+    if (!room) return
+    const remotes = Array.from(room.remoteParticipants.values()).map(participantToVoice)
+    setParticipants(remotes)
+  }, [])
+
   const currentRoom = roomId ? rooms.find(r => r.slug === roomId || r.id === roomId) : null
 
-  const handleJoinRoom = () => {
-    setIsConnected(true)
-    setIsMuted(false)
-    setIsDeafened(false)
+  const handleJoinRoom = async () => {
+    if (!isConfigured || !user || !currentRoom) return
+
+    setConnectError(null)
+    setIsConnecting(true)
+
+    try {
+      // Get Supabase session token
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.access_token) {
+        setConnectError('Not authenticated')
+        setIsConnecting(false)
+        return
+      }
+
+      const displayName = user.username || user.user_metadata?.username || user.email.split('@')[0]
+
+      // Request LiveKit token from our API
+      const resp = await fetch('/api/livekit-token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          roomName: currentRoom.slug || currentRoom.id,
+          participantName: displayName,
+        }),
+      })
+
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({ error: 'Failed to get token' }))
+        setConnectError(err.error || 'Failed to get token')
+        setIsConnecting(false)
+        return
+      }
+
+      const { token } = await resp.json()
+
+      // Connect to LiveKit
+      const livekitUrl = import.meta.env.VITE_LIVEKIT_URL as string | undefined
+      if (!livekitUrl) {
+        setConnectError('LiveKit URL not configured')
+        setIsConnecting(false)
+        return
+      }
+
+      const room = new Room()
+      livekitRoomRef.current = room
+
+      room.on(RoomEvent.ParticipantConnected, updateParticipants)
+      room.on(RoomEvent.ParticipantDisconnected, updateParticipants)
+      room.on(RoomEvent.TrackMuted, updateParticipants)
+      room.on(RoomEvent.TrackUnmuted, updateParticipants)
+      room.on(RoomEvent.ActiveSpeakersChanged, updateParticipants)
+      room.on(RoomEvent.Disconnected, () => {
+        setIsConnected(false)
+        setParticipants([])
+        livekitRoomRef.current = null
+      })
+
+      await room.connect(livekitUrl, token)
+      await room.localParticipant.setMicrophoneEnabled(true)
+
+      setIsConnected(true)
+      setIsMuted(false)
+      setIsDeafened(false)
+      updateParticipants()
+    } catch (err) {
+      setConnectError(err instanceof Error ? err.message : 'Failed to connect')
+      livekitRoomRef.current = null
+    } finally {
+      setIsConnecting(false)
+    }
   }
 
   const handleLeaveRoom = () => {
+    if (livekitRoomRef.current) {
+      livekitRoomRef.current.disconnect()
+      livekitRoomRef.current = null
+    }
     setIsConnected(false)
+    setParticipants([])
   }
 
-  const toggleMute = () => {
-    setIsMuted(!isMuted)
+  const toggleMute = async () => {
+    const room = livekitRoomRef.current
+    if (!room) return
+    const newMuted = !isMuted
+    await room.localParticipant.setMicrophoneEnabled(!newMuted)
+    setIsMuted(newMuted)
   }
 
   const toggleDeafen = () => {
-    setIsDeafened(!isDeafened)
-    if (!isDeafened) {
+    const room = livekitRoomRef.current
+    if (!room) return
+    const newDeafened = !isDeafened
+    // Mute/unmute all remote audio tracks
+    room.remoteParticipants.forEach(p => {
+      p.getTrackPublications().forEach(pub => {
+        if (pub.track && pub.track.source === Track.Source.Microphone) {
+          if (newDeafened) {
+            pub.track.detach()
+          } else {
+            const el = pub.track.attach()
+            el.id = `audio-${p.identity}`
+            // Only add if not already in DOM
+            if (!document.getElementById(el.id)) {
+              document.body.appendChild(el)
+            }
+          }
+        }
+      })
+    })
+    setIsDeafened(newDeafened)
+    if (newDeafened && !isMuted) {
+      room.localParticipant.setMicrophoneEnabled(false)
       setIsMuted(true)
     }
   }
+
+  // Auth gate component
+  const authGate = isConfigured && !user ? (
+    <div className="mt-4 rounded-xl border border-slate-700 bg-slate-800/50 p-4 text-center">
+      <p className="text-slate-400">
+        <Link to="/login" className="font-medium text-indigo-400 hover:text-indigo-300">Sign in</Link> to join voice rooms
+      </p>
+    </div>
+  ) : null
 
   if (!currentRoom) {
     return (
@@ -125,6 +339,8 @@ export default function Voice() {
           <h1 className="text-2xl font-bold text-white">Voice Rooms</h1>
           <p className="mt-1 text-slate-400">Join a room to chat with others in real-time</p>
         </div>
+
+        {authGate}
 
         <div className="grid gap-4 sm:grid-cols-2">
           {rooms.map((room) => (
@@ -171,12 +387,12 @@ export default function Voice() {
                 </div>
               )}
 
-              <button
-                onClick={handleJoinRoom}
-                className="mt-4 w-full rounded-lg bg-green-600 py-2 font-medium text-white hover:bg-green-500 transition-colors"
+              <Link
+                to={`/voice/${room.slug || room.id}`}
+                className="mt-4 block w-full rounded-lg bg-green-600 py-2 text-center font-medium text-white hover:bg-green-500 transition-colors"
               >
                 Join Room
-              </button>
+              </Link>
             </div>
           ))}
         </div>
@@ -208,10 +424,16 @@ export default function Voice() {
             </div>
           </div>
           <span className="rounded-full bg-slate-700 px-3 py-1 text-sm text-slate-300">
-            {currentRoom.participants.length + (isConnected ? 1 : 0)}/{currentRoom.maxParticipants}
+            {participants.length + (isConnected ? 1 : 0)}/{currentRoom.maxParticipants}
           </span>
         </div>
       </div>
+
+      {connectError && (
+        <div className="mb-4 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-center text-sm text-red-400">
+          {connectError}
+        </div>
+      )}
 
       <div className="rounded-xl border border-slate-700 bg-slate-800/50 p-6">
         <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-slate-500">
@@ -241,7 +463,7 @@ export default function Voice() {
             </div>
           )}
 
-          {currentRoom.participants.map((participant) => (
+          {participants.map((participant) => (
             <div key={participant.id} className="flex flex-col items-center gap-2 rounded-lg bg-slate-700/50 p-4">
               <div className={`relative h-16 w-16 rounded-full flex items-center justify-center text-2xl font-bold text-white ${
                 participant.isSpeaking ? 'bg-green-500 ring-2 ring-green-400' : 'bg-indigo-500'
@@ -265,7 +487,7 @@ export default function Voice() {
             </div>
           ))}
 
-          {currentRoom.participants.length === 0 && !isConnected && (
+          {participants.length === 0 && !isConnected && (
             <div className="col-span-full py-8 text-center text-slate-400">
               No one is in this room yet. Be the first to join!
             </div>
@@ -274,69 +496,78 @@ export default function Voice() {
       </div>
 
       <div className="mt-6 rounded-xl border border-slate-700 bg-slate-800/50 p-4">
-        <div className="flex items-center justify-center gap-4">
-          {isConnected ? (
-            <>
-              <button
-                onClick={toggleMute}
-                className={`rounded-full p-4 transition-colors ${
-                  isMuted
-                    ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30'
-                    : 'bg-slate-700 text-white hover:bg-slate-600'
-                }`}
-                title={isMuted ? 'Unmute' : 'Mute'}
-              >
-                {isMuted ? (
-                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15.414a5 5 0 001.414 1.414m2.828-9.9a9 9 0 0112.728 0M19 19l-7-7m0 0l-7-7m7 7l7-7m-7 7l-7 7" />
-                  </svg>
-                ) : (
-                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                  </svg>
-                )}
-              </button>
+        {isConfigured && !user ? (
+          <div className="text-center">
+            <p className="text-slate-400">
+              <Link to="/login" className="font-medium text-indigo-400 hover:text-indigo-300">Sign in</Link> to join voice rooms
+            </p>
+          </div>
+        ) : (
+          <div className="flex items-center justify-center gap-4">
+            {isConnected ? (
+              <>
+                <button
+                  onClick={toggleMute}
+                  className={`rounded-full p-4 transition-colors ${
+                    isMuted
+                      ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30'
+                      : 'bg-slate-700 text-white hover:bg-slate-600'
+                  }`}
+                  title={isMuted ? 'Unmute' : 'Mute'}
+                >
+                  {isMuted ? (
+                    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15.414a5 5 0 001.414 1.414m2.828-9.9a9 9 0 0112.728 0M19 19l-7-7m0 0l-7-7m7 7l7-7m-7 7l-7 7" />
+                    </svg>
+                  ) : (
+                    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                    </svg>
+                  )}
+                </button>
 
-              <button
-                onClick={toggleDeafen}
-                className={`rounded-full p-4 transition-colors ${
-                  isDeafened
-                    ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30'
-                    : 'bg-slate-700 text-white hover:bg-slate-600'
-                }`}
-                title={isDeafened ? 'Undeafen' : 'Deafen'}
-              >
-                {isDeafened ? (
-                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
-                  </svg>
-                ) : (
-                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-                  </svg>
-                )}
-              </button>
+                <button
+                  onClick={toggleDeafen}
+                  className={`rounded-full p-4 transition-colors ${
+                    isDeafened
+                      ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30'
+                      : 'bg-slate-700 text-white hover:bg-slate-600'
+                  }`}
+                  title={isDeafened ? 'Undeafen' : 'Deafen'}
+                >
+                  {isDeafened ? (
+                    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+                    </svg>
+                  ) : (
+                    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                    </svg>
+                  )}
+                </button>
 
+                <button
+                  onClick={handleLeaveRoom}
+                  className="rounded-full bg-red-500 p-4 text-white hover:bg-red-600 transition-colors"
+                  title="Disconnect"
+                >
+                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 8l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2M5 3a2 2 0 00-2 2v1c0 8.284 6.716 15 15 15h1a2 2 0 002-2v-3.28a1 1 0 00-.684-.948l-4.493-1.498a1 1 0 00-1.21.502l-1.13 2.257a11.042 11.042 0 01-5.516-5.517l2.257-1.128a1 1 0 00.502-1.21L9.228 3.683A1 1 0 008.279 3H5z" />
+                  </svg>
+                </button>
+              </>
+            ) : (
               <button
-                onClick={handleLeaveRoom}
-                className="rounded-full bg-red-500 p-4 text-white hover:bg-red-600 transition-colors"
-                title="Disconnect"
+                onClick={handleJoinRoom}
+                disabled={isConnecting || (isConfigured && !user)}
+                className="rounded-lg bg-green-600 px-8 py-3 font-medium text-white hover:bg-green-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 8l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2M5 3a2 2 0 00-2 2v1c0 8.284 6.716 15 15 15h1a2 2 0 002-2v-3.28a1 1 0 00-.684-.948l-4.493-1.498a1 1 0 00-1.21.502l-1.13 2.257a11.042 11.042 0 01-5.516-5.517l2.257-1.128a1 1 0 00.502-1.21L9.228 3.683A1 1 0 008.279 3H5z" />
-                </svg>
+                {isConnecting ? 'Connecting...' : 'Join Voice'}
               </button>
-            </>
-          ) : (
-            <button
-              onClick={handleJoinRoom}
-              className="rounded-lg bg-green-600 px-8 py-3 font-medium text-white hover:bg-green-500 transition-colors"
-            >
-              Join Voice
-            </button>
-          )}
-        </div>
+            )}
+          </div>
+        )}
 
         {isConnected && (
           <p className="mt-4 text-center text-sm text-slate-400">
