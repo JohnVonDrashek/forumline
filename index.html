@@ -9,16 +9,6 @@
   </head>
   <body>
     <div id="root"></div>
-    <script>
-      // Handle SPA redirects from 404.html
-      (function() {
-        var redirect = sessionStorage.getItem('redirect');
-        if (redirect) {
-          sessionStorage.removeItem('redirect');
-          window.history.replaceState(null, '', redirect);
-        }
-      })();
-    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
