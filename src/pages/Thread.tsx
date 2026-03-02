@@ -2,7 +2,9 @@ import { useParams, Link, useSearchParams } from 'react-router-dom'
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { supabase, isConfigured } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
+import { uploadAvatar } from '../lib/avatars'
 import Avatar from '../components/Avatar'
+import ImageCropModal from '../components/ImageCropModal'
 import type { ThreadWithAuthor, PostWithAuthor } from '../types'
 
 const POSTS_PER_PAGE = 5
@@ -163,6 +165,9 @@ export default function Thread() {
   const [isBookmarked, setIsBookmarked] = useState(false)
   const [pendingPosts, setPendingPosts] = useState<PostWithAuthor[]>([])
   const [autoUpdate, setAutoUpdate] = useState(false)
+  const [cropImageSrc, setCropImageSrc] = useState<string | null>(null)
+  const [avatarUploading, setAvatarUploading] = useState(false)
+  const threadImageInputRef = useRef<HTMLInputElement>(null)
   const allPostsRef = useRef<PostWithAuthor[]>([])
   const pendingPostsRef = useRef<PostWithAuthor[]>([])
   const autoUpdateRef = useRef(false)
@@ -578,7 +583,34 @@ export default function Thread() {
             </span>
           </button>
         </div>
-        <h1 className="mt-2 text-2xl font-bold text-white">{thread.title}</h1>
+        <div className="mt-2 flex items-start gap-3">
+          <div className="relative shrink-0">
+            <Avatar seed={thread.id} type="thread" avatarUrl={thread.image_url} className="h-12 w-12" />
+            {user?.id === thread.author_id && (
+              <button
+                type="button"
+                onClick={() => threadImageInputRef.current?.click()}
+                disabled={avatarUploading}
+                className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full border border-slate-600 bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white transition-colors"
+                title="Change thread image"
+              >
+                {avatarUploading ? (
+                  <svg className="h-3 w-3 animate-spin" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                ) : (
+                  <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                  </svg>
+                )}
+              </button>
+            )}
+          </div>
+          <div className="min-w-0 flex-1">
+            <h1 className="text-2xl font-bold text-white">{thread.title}</h1>
+          </div>
+        </div>
         <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-slate-400 sm:gap-3">
           <span>Started by {thread.author.display_name || thread.author.username}</span>
           <span className="hidden sm:inline">·</span>
@@ -811,6 +843,40 @@ export default function Thread() {
             </div>
           </div>
         </form>
+      )}
+
+      {/* Hidden file input for thread image change */}
+      <input
+        ref={threadImageInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0]
+          if (file) {
+            const reader = new FileReader()
+            reader.onload = () => setCropImageSrc(reader.result as string)
+            reader.readAsDataURL(file)
+          }
+          e.target.value = ''
+        }}
+      />
+
+      {cropImageSrc && (
+        <ImageCropModal
+          imageSrc={cropImageSrc}
+          onCrop={async (blob) => {
+            setCropImageSrc(null)
+            setAvatarUploading(true)
+            const imageUrl = await uploadAvatar(blob, `thread/${thread.id}/custom.png`)
+            if (imageUrl) {
+              await supabase.from('threads').update({ image_url: imageUrl }).eq('id', thread.id)
+              setThread(prev => prev ? { ...prev, image_url: imageUrl } : prev)
+            }
+            setAvatarUploading(false)
+          }}
+          onCancel={() => setCropImageSrc(null)}
+        />
       )}
     </div>
   )

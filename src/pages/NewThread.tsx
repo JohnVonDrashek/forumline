@@ -1,8 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { supabase, isConfigured } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
-import { uploadDefaultAvatar } from '../lib/avatars'
+import { uploadAvatar, uploadDefaultAvatar } from '../lib/avatars'
+import Avatar from '../components/Avatar'
+import ImageCropModal from '../components/ImageCropModal'
 import type { Category } from '../types'
 
 const demoCategories: Record<string, Category> = {
@@ -21,6 +23,10 @@ export default function NewThread() {
   const [content, setContent] = useState('')
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [threadImageBlob, setThreadImageBlob] = useState<Blob | null>(null)
+  const [threadImagePreview, setThreadImagePreview] = useState<string | null>(null)
+  const [cropImageSrc, setCropImageSrc] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (!user) {
@@ -108,12 +114,21 @@ export default function NewThread() {
       return
     }
 
-    // Generate and upload a default DiceBear thread image (fire-and-forget)
-    uploadDefaultAvatar(thread.id, 'thread').then(imageUrl => {
+    // Upload thread image
+    if (threadImageBlob) {
+      // User selected a custom image — upload and update synchronously before navigating
+      const imageUrl = await uploadAvatar(threadImageBlob, `thread/${thread.id}/custom.png`)
       if (imageUrl) {
-        supabase.from('threads').update({ image_url: imageUrl }).eq('id', thread.id)
+        await supabase.from('threads').update({ image_url: imageUrl }).eq('id', thread.id)
       }
-    })
+    } else {
+      // No custom image — generate and upload a default DiceBear thread image (fire-and-forget)
+      uploadDefaultAvatar(thread.id, 'thread').then(imageUrl => {
+        if (imageUrl) {
+          supabase.from('threads').update({ image_url: imageUrl }).eq('id', thread.id)
+        }
+      })
+    }
 
     navigate(`/t/${thread.id}`)
   }
@@ -143,6 +158,53 @@ export default function NewThread() {
       <div className="rounded-xl border border-slate-700 bg-slate-800/50 p-6">
         <h1 className="text-2xl font-bold text-white">Start a new discussion</h1>
         <p className="mt-1 text-slate-400">in {category.name}</p>
+
+        {/* Optional thread image */}
+        <div className="mt-4 flex items-center gap-4">
+          <Avatar
+            seed={threadImagePreview ? '' : 'placeholder'}
+            type="thread"
+            avatarUrl={threadImagePreview}
+            className="h-16 w-16 shrink-0"
+          />
+          <div>
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="rounded-lg border border-slate-600 px-3 py-1.5 text-sm text-slate-300 hover:bg-slate-700"
+            >
+              {threadImagePreview ? 'Change Image' : 'Add Thread Image'}
+            </button>
+            {threadImagePreview && (
+              <button
+                type="button"
+                onClick={() => {
+                  setThreadImageBlob(null)
+                  setThreadImagePreview(null)
+                }}
+                className="ml-2 text-sm text-slate-500 hover:text-red-400"
+              >
+                Remove
+              </button>
+            )}
+            <p className="mt-1 text-xs text-slate-500">Optional — a default image will be generated if none is provided</p>
+          </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0]
+              if (file) {
+                const reader = new FileReader()
+                reader.onload = () => setCropImageSrc(reader.result as string)
+                reader.readAsDataURL(file)
+              }
+              e.target.value = ''
+            }}
+          />
+        </div>
 
         {!isConfigured && (
           <div className="mt-4 rounded-lg bg-amber-500/10 border border-amber-500/20 p-3 text-sm text-amber-400">
@@ -205,6 +267,18 @@ export default function NewThread() {
           </div>
         </form>
       </div>
+
+      {cropImageSrc && (
+        <ImageCropModal
+          imageSrc={cropImageSrc}
+          onCrop={(blob) => {
+            setThreadImageBlob(blob)
+            setThreadImagePreview(URL.createObjectURL(blob))
+            setCropImageSrc(null)
+          }}
+          onCancel={() => setCropImageSrc(null)}
+        />
+      )}
     </div>
   )
 }

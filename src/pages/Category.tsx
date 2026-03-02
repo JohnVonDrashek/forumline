@@ -2,6 +2,7 @@ import { Link, useParams } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { supabase, isConfigured } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
+import Avatar from '../components/Avatar'
 import type { Category as CategoryType, ThreadWithAuthor } from '../types'
 
 const demoCategories: Record<string, CategoryType> = {
@@ -143,9 +144,7 @@ export default function Category() {
                 to={`/t/${thread.id}`}
                 className="flex items-start gap-4 px-4 py-4 transition-colors hover:bg-slate-700/30"
               >
-                <div className="h-10 w-10 shrink-0 rounded-full bg-indigo-500 flex items-center justify-center text-sm font-medium text-white">
-                  {thread.author.display_name?.[0] || thread.author.username[0]}
-                </div>
+                <Avatar seed={thread.id} type="thread" avatarUrl={thread.image_url} className="h-10 w-10 shrink-0" />
 
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
