@@ -252,7 +252,7 @@ export default function Voice() {
           {isConnectedToThisRoom && (
             <div className="flex flex-col items-center gap-2 rounded-lg bg-slate-700/50 p-4">
               <div className={`relative h-16 w-16 rounded-full flex items-center justify-center text-2xl font-bold text-white ${
-                !voice.isMuted ? 'bg-green-500 ring-2 ring-green-400 animate-pulse' : 'bg-indigo-500'
+                voice.isSpeaking ? 'bg-green-500 ring-2 ring-green-400 animate-pulse' : voice.isMuted ? 'bg-indigo-500' : 'bg-green-500'
               }`}>
                 Y
                 {voice.isMuted && (
@@ -264,10 +264,17 @@ export default function Voice() {
                 )}
               </div>
               <span className="text-sm font-medium text-white">You</span>
-              <div className="flex items-center gap-1 text-xs text-green-400">
-                <span className="h-2 w-2 rounded-full bg-green-400" />
-                Connected
-              </div>
+              {voice.isSpeaking ? (
+                <div className="flex items-center gap-1 text-xs text-green-400">
+                  <span className="h-2 w-2 rounded-full bg-green-400 animate-pulse" />
+                  Speaking
+                </div>
+              ) : (
+                <div className="flex items-center gap-1 text-xs text-green-400">
+                  <span className="h-2 w-2 rounded-full bg-green-400" />
+                  Connected
+                </div>
+              )}
             </div>
           )}
 

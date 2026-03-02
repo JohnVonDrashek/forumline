@@ -22,6 +22,7 @@ interface VoiceContextType {
   isConnecting: boolean
   isMuted: boolean
   isDeafened: boolean
+  isSpeaking: boolean
   connectedRoomSlug: string | null
   connectedRoomName: string | null
   connectError: string | null
@@ -60,6 +61,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
   const [isConnecting, setIsConnecting] = useState(false)
   const [isMuted, setIsMuted] = useState(false)
   const [isDeafened, setIsDeafened] = useState(false)
+  const [isSpeaking, setIsSpeaking] = useState(false)
   const [connectedRoomSlug, setConnectedRoomSlug] = useState<string | null>(null)
   const [connectedRoomName, setConnectedRoomName] = useState<string | null>(null)
   const [connectError, setConnectError] = useState<string | null>(null)
@@ -74,6 +76,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
     if (!room) return
     const remotes = Array.from(room.remoteParticipants.values()).map(participantToVoice)
     setParticipants(remotes)
+    setIsSpeaking(room.localParticipant.isSpeaking)
   }, [])
 
   const leaveRoom = useCallback(() => {
@@ -95,6 +98,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
     setConnectedRoomName(null)
     setIsMuted(false)
     setIsDeafened(false)
+    setIsSpeaking(false)
     setConnectError(null)
     connectedRoomSlugRef.current = null
   }, [])
@@ -180,6 +184,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
         setConnectedRoomName(null)
         setIsMuted(false)
         setIsDeafened(false)
+        setIsSpeaking(false)
         connectedRoomSlugRef.current = null
         livekitRoomRef.current = null
       })
@@ -296,6 +301,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
       isConnecting,
       isMuted,
       isDeafened,
+      isSpeaking,
       connectedRoomSlug,
       connectedRoomName,
       connectError,
