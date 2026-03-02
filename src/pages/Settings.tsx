@@ -4,6 +4,7 @@ import { useAuth } from '../lib/auth'
 import { supabase, isConfigured } from '../lib/supabase'
 import { uploadAvatar } from '../lib/avatars'
 import Avatar from '../components/Avatar'
+import ImageCropModal from '../components/ImageCropModal'
 
 type Tab = 'profile' | 'account' | 'notifications' | 'appearance'
 
@@ -19,6 +20,7 @@ export default function Settings() {
   const [website, setWebsite] = useState('')
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
   const [avatarUploading, setAvatarUploading] = useState(false)
+  const [cropImageSrc, setCropImageSrc] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Account state
@@ -205,20 +207,12 @@ export default function Settings() {
                     type="file"
                     accept="image/*"
                     className="hidden"
-                    onChange={async (e) => {
+                    onChange={(e) => {
                       const file = e.target.files?.[0]
-                      if (!file || !user) return
-                      setAvatarUploading(true)
-                      setError('')
-                      const path = `user/${user.id}/custom.png`
-                      const url = await uploadAvatar(file, path)
-                      if (url) {
-                        await supabase.from('profiles').update({ avatar_url: url }).eq('id', user.id)
-                        setAvatarUrl(url)
-                      } else {
-                        setError('Failed to upload avatar')
-                      }
-                      setAvatarUploading(false)
+                      if (!file) return
+                      const reader = new FileReader()
+                      reader.onload = () => setCropImageSrc(reader.result as string)
+                      reader.readAsDataURL(file)
                       e.target.value = ''
                     }}
                   />
@@ -478,6 +472,29 @@ export default function Settings() {
           </div>
         </div>
       </div>
+
+      {cropImageSrc && (
+        <ImageCropModal
+          imageSrc={cropImageSrc}
+          onCancel={() => setCropImageSrc(null)}
+          onCrop={async (blob) => {
+            setCropImageSrc(null)
+            if (!user) return
+            setAvatarUploading(true)
+            setError('')
+            const file = new File([blob], 'avatar.png', { type: 'image/png' })
+            const path = `user/${user.id}/custom.png`
+            const url = await uploadAvatar(file, path)
+            if (url) {
+              await supabase.from('profiles').update({ avatar_url: url }).eq('id', user.id)
+              setAvatarUrl(url)
+            } else {
+              setError('Failed to upload avatar')
+            }
+            setAvatarUploading(false)
+          }}
+        />
+      )}
     </div>
   )
 }

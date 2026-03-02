@@ -25,9 +25,8 @@ export default function Avatar({ seed, type = 'user', size = 40, className = '',
     <img
       src={avatarUrl || fallbackSvg}
       alt=""
-      width={size}
-      height={size}
-      className={`rounded-full ${className}`}
+      className={`rounded-full object-cover ${className}`}
+      style={!className.includes('h-') ? { width: size, height: size } : undefined}
     />
   )
 }

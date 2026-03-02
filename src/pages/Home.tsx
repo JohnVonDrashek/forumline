@@ -136,7 +136,7 @@ export default function Home() {
                 className="flex items-start gap-3 px-3 py-3 transition-colors hover:bg-slate-700/30 sm:gap-4 sm:px-4 sm:py-4"
               >
                 {/* Thread Avatar */}
-                <Avatar seed={thread.id} type="thread" avatarUrl={thread.image_url} size={40} className="h-9 w-9 shrink-0 sm:h-10 sm:w-10" />
+                <Avatar seed={thread.id} type="thread" avatarUrl={thread.image_url} className="h-9 w-9 shrink-0 sm:h-10 sm:w-10" />
 
                 {/* Content */}
                 <div className="min-w-0 flex-1">
