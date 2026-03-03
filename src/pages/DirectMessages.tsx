@@ -244,6 +244,20 @@ export default function DirectMessages() {
     navigate(`/dm/${profile.id}`)
   }, [navigate])
 
+  // Close new message modal on Escape
+  useEffect(() => {
+    if (!showNewMessage) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setShowNewMessage(false)
+        setSearchQuery('')
+        setSearchResults([])
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [showNewMessage])
+
   const showConversationList = !recipientId
   const showMessages = !!recipientId
 
@@ -268,6 +282,7 @@ export default function DirectMessages() {
               onClick={() => setShowNewMessage(true)}
               className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-700 hover:text-white"
               title="New message"
+              aria-label="New message"
             >
               <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -341,6 +356,7 @@ export default function DirectMessages() {
                 <Link
                   to="/dm"
                   className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-700 hover:text-white md:hidden"
+                  aria-label="Back to conversations"
                 >
                   <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -353,7 +369,7 @@ export default function DirectMessages() {
               </div>
 
               {/* Messages */}
-              <div className="flex-1 overflow-y-auto p-4">
+              <div role="log" aria-live="polite" aria-label="Direct messages" className="flex-1 overflow-y-auto p-4">
                 <div className="space-y-4">
                   {messages.length === 0 && (
                     <div className="py-12 text-center text-slate-500">
@@ -396,11 +412,13 @@ export default function DirectMessages() {
                       value={newMessage}
                       onChange={e => setNewMessage(e.target.value)}
                       placeholder={`Message ${activeConversation.recipientName}...`}
+                      aria-label={`Message ${activeConversation.recipientName}`}
                       className="flex-1"
                     />
                     <Button
                       type="submit"
                       disabled={!newMessage.trim()}
+                      aria-label="Send message"
                     >
                       <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
@@ -433,13 +451,15 @@ export default function DirectMessages() {
           <div
             className="fixed inset-0 bg-black/60"
             onClick={() => { setShowNewMessage(false); setSearchQuery(''); setSearchResults([]) }}
+            aria-hidden="true"
           />
-          <div className="relative w-full max-w-md rounded-xl border border-slate-700 bg-slate-800 shadow-2xl">
+          <div role="dialog" aria-modal="true" aria-labelledby="new-message-title" className="relative w-full max-w-md rounded-xl border border-slate-700 bg-slate-800 shadow-2xl">
             <div className="flex items-center justify-between border-b border-slate-700 px-4 py-3">
-              <h3 className="font-semibold text-white">New Message</h3>
+              <h3 id="new-message-title" className="font-semibold text-white">New Message</h3>
               <button
                 onClick={() => { setShowNewMessage(false); setSearchQuery(''); setSearchResults([]) }}
                 className="rounded-lg p-1 text-slate-400 hover:bg-slate-700 hover:text-white"
+                aria-label="Close dialog"
               >
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -453,6 +473,7 @@ export default function DirectMessages() {
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 placeholder="Search by username or display name..."
+                aria-label="Search users"
                 className="w-full"
                 autoFocus
               />

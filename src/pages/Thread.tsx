@@ -450,6 +450,8 @@ export default function Thread() {
           </div>
           <button
             onClick={toggleBookmark}
+            aria-label={isBookmarked ? 'Remove bookmark' : 'Add bookmark'}
+            aria-pressed={isBookmarked}
             className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm transition-colors ${
               isBookmarked
                 ? 'bg-amber-500/20 text-amber-400'
@@ -580,11 +582,12 @@ export default function Thread() {
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="mt-6 flex items-center justify-center gap-1">
+        <nav aria-label="Thread pagination" className="mt-6 flex items-center justify-center gap-1">
           {/* Previous */}
           <button
             onClick={() => goToPage(currentPage - 1)}
             disabled={currentPage === 1}
+            aria-label="Previous page"
             className="rounded-lg p-2 text-slate-400 hover:bg-slate-700 hover:text-white disabled:opacity-50 disabled:hover:bg-transparent disabled:hover:text-slate-400"
           >
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -600,6 +603,8 @@ export default function Thread() {
               <button
                 key={page}
                 onClick={() => goToPage(page)}
+                aria-label={`Page ${page}`}
+                aria-current={page === currentPage ? 'page' : undefined}
                 className={`min-w-[2.5rem] rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                   page === currentPage
                     ? 'bg-indigo-600 text-white'
@@ -615,13 +620,14 @@ export default function Thread() {
           <button
             onClick={() => goToPage(currentPage + 1)}
             disabled={currentPage === totalPages}
+            aria-label="Next page"
             className="rounded-lg p-2 text-slate-400 hover:bg-slate-700 hover:text-white disabled:opacity-50 disabled:hover:bg-transparent disabled:hover:text-slate-400"
           >
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
           </button>
-        </div>
+        </nav>
       )}
 
       {/* Live updates bar */}
@@ -691,6 +697,7 @@ export default function Thread() {
                   type="button"
                   onClick={() => setReplyingTo(null)}
                   className="text-slate-500 hover:text-white"
+                  aria-label="Cancel reply"
                 >
                   <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -704,6 +711,7 @@ export default function Thread() {
                 value={replyContent}
                 onChange={(e) => setReplyContent(e.target.value)}
                 placeholder={replyingTo ? `Reply to ${replyingTo.author.display_name || replyingTo.author.username}...` : "Write your reply..."}
+                aria-label={replyingTo ? `Reply to ${replyingTo.author.display_name || replyingTo.author.username}` : "Write your reply"}
                 rows={4}
                 className="block w-full resize-none rounded-lg border border-slate-600 bg-slate-700 px-4 py-3 text-white placeholder-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
               />

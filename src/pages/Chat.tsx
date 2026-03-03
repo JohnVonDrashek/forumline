@@ -245,7 +245,7 @@ export default function Chat() {
       </div>
 
       {/* Messages Area */}
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
+      <div role="log" aria-live="polite" aria-label="Chat messages" className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
         {loading && (
           <div className="space-y-6 py-4">
             {[...Array(6)].map((_, i) => (
@@ -344,6 +344,7 @@ export default function Chat() {
               <button
                 type="button"
                 className="shrink-0 text-slate-400 hover:text-slate-300"
+                aria-label="Add attachment"
               >
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -355,12 +356,14 @@ export default function Chat() {
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 placeholder={`Message #${channel?.name || channelSlug}`}
+                aria-label={`Message #${channel?.name || channelSlug}`}
                 className="flex-1 bg-transparent text-white placeholder-slate-400 outline-none"
               />
               <button
                 type="submit"
                 disabled={!inputValue.trim()}
                 className="shrink-0 text-slate-400 hover:text-indigo-400 disabled:opacity-50 disabled:hover:text-slate-400"
+                aria-label="Send message"
               >
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />

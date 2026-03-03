@@ -84,6 +84,18 @@ export default function Header({ onMenuClick }: HeaderProps) {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
+  // Close notification dropdown on Escape
+  useEffect(() => {
+    if (!showNotifications) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setShowNotifications(false)
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [showNotifications])
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
     if (searchQuery.trim()) {
@@ -181,12 +193,13 @@ export default function Header({ onMenuClick }: HeaderProps) {
 
         <div className="flex items-center gap-2 sm:gap-4">
           {/* Search */}
-          <form onSubmit={handleSearch} className="relative hidden md:block">
+          <form onSubmit={handleSearch} role="search" className="relative hidden md:block">
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search..."
+              aria-label="Search the forum"
               className="w-64 rounded-lg border border-slate-600 bg-slate-700 px-4 py-1.5 text-sm text-white placeholder-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
             />
             <kbd className="absolute right-2 top-1/2 -translate-y-1/2 rounded border border-slate-600 bg-slate-800 px-1.5 text-xs text-slate-400">
@@ -198,6 +211,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
           <Link
             to="/search"
             className="rounded-lg p-2 text-slate-400 hover:bg-slate-700 hover:text-white md:hidden"
+            aria-label="Search"
           >
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -209,6 +223,9 @@ export default function Header({ onMenuClick }: HeaderProps) {
             <button
               onClick={() => setShowNotifications(!showNotifications)}
               className="relative rounded-lg p-2 text-slate-400 hover:bg-slate-700 hover:text-white"
+              aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ''}`}
+              aria-expanded={showNotifications}
+              aria-haspopup="true"
             >
               <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
@@ -222,7 +239,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
 
             {/* Dropdown */}
             {showNotifications && (
-              <div className="absolute right-0 mt-2 w-80 rounded-xl border border-slate-700 bg-slate-800 shadow-xl">
+              <div role="menu" aria-label="Notifications" className="absolute right-0 mt-2 w-80 rounded-xl border border-slate-700 bg-slate-800 shadow-xl">
                 <div className="flex items-center justify-between border-b border-slate-700 px-4 py-3">
                   <h3 className="font-semibold text-white">Notifications</h3>
                   {unreadCount > 0 && (
@@ -297,6 +314,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
                 to="/admin"
                 className="hidden rounded-lg p-2 text-slate-400 hover:bg-slate-700 hover:text-white sm:block"
                 title="Admin Dashboard"
+                aria-label="Admin Dashboard"
               >
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />

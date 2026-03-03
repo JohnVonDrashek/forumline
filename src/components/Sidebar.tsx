@@ -15,7 +15,7 @@ export default function Sidebar({ categories, channels, rooms, unreadDmCount }: 
 
   return (
     <aside className="sticky top-14 hidden h-[calc(100vh-3.5rem)] w-64 shrink-0 border-r border-slate-700 bg-slate-800/50 lg:block">
-      <nav className="h-full overflow-y-auto p-4">
+      <nav aria-label="Main navigation" className="h-full overflow-y-auto p-4">
         <div className="mb-4 space-y-1">
           <Link
             to="/"
@@ -195,6 +195,8 @@ export default function Sidebar({ categories, channels, rooms, unreadDmCount }: 
                     : 'bg-slate-700 text-white hover:bg-slate-600'
                 }`}
                 title={voice.isMuted ? 'Unmute' : 'Mute'}
+                aria-label={voice.isMuted ? 'Unmute microphone' : 'Mute microphone'}
+                aria-pressed={voice.isMuted}
               >
                 {voice.isMuted ? (
                   <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -214,6 +216,8 @@ export default function Sidebar({ categories, channels, rooms, unreadDmCount }: 
                     : 'bg-slate-700 text-white hover:bg-slate-600'
                 }`}
                 title={voice.isDeafened ? 'Undeafen' : 'Deafen'}
+                aria-label={voice.isDeafened ? 'Undeafen audio' : 'Deafen audio'}
+                aria-pressed={voice.isDeafened}
               >
                 {voice.isDeafened ? (
                   <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -230,6 +234,7 @@ export default function Sidebar({ categories, channels, rooms, unreadDmCount }: 
                 onClick={voice.leaveRoom}
                 className="ml-auto rounded-md bg-red-500/20 px-2 py-1.5 text-xs font-medium text-red-400 hover:bg-red-500/30 transition-colors"
                 title="Disconnect"
+                aria-label="Disconnect from voice room"
               >
                 Disconnect
               </button>
@@ -257,7 +262,7 @@ export default function Sidebar({ categories, channels, rooms, unreadDmCount }: 
               Messages
             </div>
             {unreadDmCount > 0 && (
-              <span className="flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-indigo-500 px-1.5 text-xs font-medium text-white">
+              <span className="flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-indigo-500 px-1.5 text-xs font-medium text-white" aria-label={`${unreadDmCount} unread messages`}>
                 {unreadDmCount}
               </span>
             )}

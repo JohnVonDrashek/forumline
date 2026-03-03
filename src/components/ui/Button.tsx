@@ -7,10 +7,10 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variantClasses: Record<ButtonVariant, string> = {
-  primary: 'bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-50',
-  secondary: 'bg-slate-700 text-white hover:bg-slate-600 disabled:opacity-50',
-  danger: 'bg-red-600 text-white hover:bg-red-500 disabled:opacity-50',
-  ghost: 'text-slate-400 hover:bg-slate-700 hover:text-white disabled:opacity-50',
+  primary: 'bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 focus-visible:outline-none',
+  secondary: 'bg-slate-700 text-white hover:bg-slate-600 disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 focus-visible:outline-none',
+  danger: 'bg-red-600 text-white hover:bg-red-500 disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 focus-visible:outline-none',
+  ghost: 'text-slate-400 hover:bg-slate-700 hover:text-white disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 focus-visible:outline-none',
 }
 
 const Button = forwardRef<HTMLButtonElement, ButtonProps>(

@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import Cropper, { type Area } from 'react-easy-crop'
 import Button from './ui/Button'
 
@@ -44,6 +44,17 @@ export default function ImageCropModal({ imageSrc, onCrop, onCancel }: ImageCrop
     setCroppedAreaPixels(croppedPixels)
   }, [])
 
+  // Close on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onCancel()
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [onCancel])
+
   const handleSave = async () => {
     if (!croppedAreaPixels) return
     const blob = await getCroppedImg(imageSrc, croppedAreaPixels)
@@ -52,8 +63,8 @@ export default function ImageCropModal({ imageSrc, onCrop, onCancel }: ImageCrop
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
-      <div className="mx-4 w-full max-w-md rounded-xl border border-slate-700 bg-slate-800 p-4">
-        <h3 className="mb-4 text-lg font-semibold text-white">Crop Avatar</h3>
+      <div role="dialog" aria-modal="true" aria-labelledby="crop-modal-title" className="mx-4 w-full max-w-md rounded-xl border border-slate-700 bg-slate-800 p-4">
+        <h3 id="crop-modal-title" className="mb-4 text-lg font-semibold text-white">Crop Avatar</h3>
 
         <div className="relative h-72 w-full overflow-hidden rounded-lg bg-slate-900">
           <Cropper
@@ -77,6 +88,7 @@ export default function ImageCropModal({ imageSrc, onCrop, onCancel }: ImageCrop
             step={0.1}
             value={zoom}
             onChange={(e) => setZoom(Number(e.target.value))}
+            aria-label="Zoom level"
             className="flex-1"
           />
         </div>
