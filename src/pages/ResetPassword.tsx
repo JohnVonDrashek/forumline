@@ -14,18 +14,20 @@ export default function ResetPassword() {
 
   // Check if user has a valid recovery session
   useEffect(() => {
-    // Supabase handles the token exchange automatically when redirected from email
-    // The user will be logged in with a recovery session
-    // We just need to check if they're authenticated
-    const checkSession = () => {
-      // Give Supabase a moment to process the recovery token from URL
-      setTimeout(() => {
-        if (!user) {
-          setIsValidSession(false)
-        }
-      }, 1000)
+    // If user is already set, session is valid
+    if (user) {
+      setIsValidSession(true)
+      return
     }
-    checkSession()
+
+    // Give Supabase a moment to process the recovery token from URL hash
+    const timer = setTimeout(() => {
+      if (!user) {
+        setIsValidSession(false)
+      }
+    }, 2000)
+
+    return () => clearTimeout(timer)
   }, [user])
 
   const handleSubmit = async (e: React.FormEvent) => {

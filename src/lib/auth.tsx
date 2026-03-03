@@ -101,10 +101,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
+      async (event, session) => {
         if (session?.user) {
           const prof = await ensureProfile(session.user)
           setUser(toAppUser(session.user, prof))
+
+          // Redirect to reset-password page on PASSWORD_RECOVERY event
+          if (event === 'PASSWORD_RECOVERY') {
+            window.location.href = '/reset-password'
+          }
         } else {
           setUser(null)
           setProfile(null)
