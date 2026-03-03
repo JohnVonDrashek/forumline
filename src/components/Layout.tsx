@@ -114,7 +114,7 @@ export default function Layout() {
   }, [])
 
   return (
-    <div className="min-h-screen bg-slate-900">
+    <div className="min-h-screen min-h-[100dvh] bg-slate-900">
       <Header onMenuClick={handleMenuClick} />
 
       {/* Mobile sidebar */}
