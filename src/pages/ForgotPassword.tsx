@@ -85,11 +85,13 @@ export default function ForgotPassword() {
           Enter your email address and we'll send you a link to reset your password.
         </p>
 
-        {error && (
-          <div className="mt-4 rounded-lg border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-400">
-            {error}
-          </div>
-        )}
+        <div aria-live="polite">
+          {error && (
+            <div id="forgot-password-error" role="alert" className="mt-4 rounded-lg border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-400">
+              {error}
+            </div>
+          )}
+        </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="mt-6 space-y-4">
           <div>
@@ -102,6 +104,8 @@ export default function ForgotPassword() {
               {...register('email')}
               className="mt-1 block w-full"
               placeholder="you@example.com"
+              aria-invalid={!!error}
+              aria-describedby={error ? 'forgot-password-error' : undefined}
             />
             {errors.email && (
               <p className="text-red-400 text-sm mt-1">{errors.email.message}</p>

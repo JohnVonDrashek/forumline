@@ -118,11 +118,13 @@ export default function ResetPassword() {
           Enter your new password below.
         </p>
 
-        {error && (
-          <div className="mt-4 rounded-lg border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-400">
-            {error}
-          </div>
-        )}
+        <div aria-live="polite">
+          {error && (
+            <div id="reset-password-error" role="alert" className="mt-4 rounded-lg border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-400">
+              {error}
+            </div>
+          )}
+        </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="mt-6 space-y-4">
           <div>
@@ -135,6 +137,8 @@ export default function ResetPassword() {
               {...register('password')}
               className="mt-1 block w-full"
               placeholder="Enter new password"
+              aria-invalid={!!error}
+              aria-describedby={error ? 'reset-password-error' : undefined}
             />
             {errors.password && (
               <p className="text-red-400 text-sm mt-1">{errors.password.message}</p>
@@ -152,6 +156,8 @@ export default function ResetPassword() {
               {...register('confirmPassword')}
               className="mt-1 block w-full"
               placeholder="Confirm new password"
+              aria-invalid={!!error}
+              aria-describedby={error ? 'reset-password-error' : undefined}
             />
             {errors.confirmPassword && (
               <p className="text-red-400 text-sm mt-1">{errors.confirmPassword.message}</p>

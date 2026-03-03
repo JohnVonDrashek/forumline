@@ -138,6 +138,12 @@ export default function Layout() {
 
   return (
     <div className="min-h-screen min-h-[100dvh] bg-slate-900">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-indigo-600 focus:px-4 focus:py-2 focus:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+      >
+        Skip to main content
+      </a>
       <Toaster position="bottom-right" toastOptions={{
         style: { background: '#1e293b', color: '#f1f5f9', border: '1px solid #334155' },
         success: { iconTheme: { primary: '#22c55e', secondary: '#f1f5f9' } },
@@ -162,7 +168,7 @@ export default function Layout() {
           rooms={rooms}
           unreadDmCount={unreadDmCount}
         />
-        <main className="flex-1 p-4 sm:p-6">
+        <main id="main-content" role="main" className="flex-1 p-4 sm:p-6">
           <ErrorBoundary>
             <Outlet />
           </ErrorBoundary>

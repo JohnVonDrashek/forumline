@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
-import { useEffect } from 'react'
+import { useEffect, useRef, useCallback } from 'react'
 import { useVoice } from '../lib/voice'
 import type { Category, ChatChannel, VoiceRoom } from '../types'
 
@@ -15,11 +15,55 @@ interface MobileSidebarProps {
 export default function MobileSidebar({ isOpen, onClose, categories, channels, rooms, unreadDmCount }: MobileSidebarProps) {
   const location = useLocation()
   const voice = useVoice()
+  const sidebarRef = useRef<HTMLDivElement>(null)
 
   // Close sidebar on route change
   useEffect(() => {
     onClose()
   }, [location.pathname, onClose])
+
+  // Close on Escape key
+  useEffect(() => {
+    if (!isOpen) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose()
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [isOpen, onClose])
+
+  // Focus trap when open
+  const handleFocusTrap = useCallback((e: KeyboardEvent) => {
+    if (e.key !== 'Tab' || !sidebarRef.current) return
+    const focusableElements = sidebarRef.current.querySelectorAll<HTMLElement>(
+      'a[href], button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])'
+    )
+    if (focusableElements.length === 0) return
+    const firstElement = focusableElements[0]
+    const lastElement = focusableElements[focusableElements.length - 1]
+    if (e.shiftKey) {
+      if (document.activeElement === firstElement) {
+        e.preventDefault()
+        lastElement.focus()
+      }
+    } else {
+      if (document.activeElement === lastElement) {
+        e.preventDefault()
+        firstElement.focus()
+      }
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!isOpen) return
+    document.addEventListener('keydown', handleFocusTrap)
+    // Focus the close button when sidebar opens
+    const closeBtn = sidebarRef.current?.querySelector<HTMLElement>('button[aria-label="Close menu"]')
+    closeBtn?.focus()
+    return () => document.removeEventListener('keydown', handleFocusTrap)
+  }, [isOpen, handleFocusTrap])
 
   // Prevent body scroll when sidebar is open
   useEffect(() => {
@@ -41,10 +85,17 @@ export default function MobileSidebar({ isOpen, onClose, categories, channels, r
       <div
         className="fixed inset-0 z-40 bg-black/80 backdrop-blur-sm lg:hidden"
         onClick={onClose}
+        aria-hidden="true"
       />
 
       {/* Sidebar */}
-      <div className="fixed inset-y-0 left-0 z-50 w-[85vw] max-w-72 bg-slate-800 shadow-xl lg:hidden">
+      <div
+        ref={sidebarRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Navigation menu"
+        className="fixed inset-y-0 left-0 z-50 w-[85vw] max-w-72 bg-slate-800 shadow-xl lg:hidden"
+      >
         <div className="flex h-14 items-center justify-between border-b border-slate-700 px-4">
           <Link to="/" className="flex items-center gap-2 text-xl font-bold text-white" onClick={onClose}>
             <svg className="h-8 w-8 text-indigo-500" viewBox="0 0 24 24" fill="currentColor">
@@ -63,7 +114,7 @@ export default function MobileSidebar({ isOpen, onClose, categories, channels, r
           </button>
         </div>
 
-        <nav className="h-[calc(100vh-3.5rem)] overflow-y-auto p-4">
+        <nav aria-label="Main navigation" className="h-[calc(100vh-3.5rem)] overflow-y-auto p-4">
           <div className="mb-4 space-y-1">
             <Link
               to="/"
@@ -243,6 +294,8 @@ export default function MobileSidebar({ isOpen, onClose, categories, channels, r
                       : 'bg-slate-700 text-white hover:bg-slate-600'
                   }`}
                   title={voice.isMuted ? 'Unmute' : 'Mute'}
+                  aria-label={voice.isMuted ? 'Unmute microphone' : 'Mute microphone'}
+                  aria-pressed={voice.isMuted}
                 >
                   {voice.isMuted ? (
                     <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -262,6 +315,8 @@ export default function MobileSidebar({ isOpen, onClose, categories, channels, r
                       : 'bg-slate-700 text-white hover:bg-slate-600'
                   }`}
                   title={voice.isDeafened ? 'Undeafen' : 'Deafen'}
+                  aria-label={voice.isDeafened ? 'Undeafen audio' : 'Deafen audio'}
+                  aria-pressed={voice.isDeafened}
                 >
                   {voice.isDeafened ? (
                     <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -278,6 +333,7 @@ export default function MobileSidebar({ isOpen, onClose, categories, channels, r
                   onClick={voice.leaveRoom}
                   className="ml-auto rounded-md bg-red-500/20 px-2 py-1.5 text-xs font-medium text-red-400 hover:bg-red-500/30 transition-colors"
                   title="Disconnect"
+                  aria-label="Disconnect from voice room"
                 >
                   Disconnect
                 </button>
@@ -305,7 +361,7 @@ export default function MobileSidebar({ isOpen, onClose, categories, channels, r
                 Messages
               </div>
               {unreadDmCount > 0 && (
-                <span className="flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-indigo-500 px-1.5 text-xs font-medium text-white">
+                <span className="flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-indigo-500 px-1.5 text-xs font-medium text-white" aria-label={`${unreadDmCount} unread messages`}>
                   {unreadDmCount}
                 </span>
               )}

@@ -52,11 +52,13 @@ export default function Login() {
         <h1 className="text-2xl font-bold text-white">Sign In</h1>
         <p className="mt-2 text-slate-400">Welcome back! Sign in to your account.</p>
 
-        {error && (
-          <div className="mt-4 rounded-lg bg-red-500/10 border border-red-500/20 p-3 text-sm text-red-400">
-            {error}
-          </div>
-        )}
+        <div aria-live="polite">
+          {error && (
+            <div id="login-error" role="alert" className="mt-4 rounded-lg bg-red-500/10 border border-red-500/20 p-3 text-sm text-red-400">
+              {error}
+            </div>
+          )}
+        </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="mt-6 space-y-4">
           <div>
@@ -69,6 +71,8 @@ export default function Login() {
               {...register('email')}
               className="mt-1 block w-full"
               placeholder="you@example.com"
+              aria-invalid={!!error}
+              aria-describedby={error ? 'login-error' : undefined}
             />
             {errors.email && (
               <p className="text-red-400 text-sm mt-1">{errors.email.message}</p>
@@ -90,6 +94,8 @@ export default function Login() {
               {...register('password')}
               className="mt-1 block w-full"
               placeholder="••••••••"
+              aria-invalid={!!error}
+              aria-describedby={error ? 'login-error' : undefined}
             />
             {errors.password && (
               <p className="text-red-400 text-sm mt-1">{errors.password.message}</p>

@@ -49,11 +49,13 @@ export default function Register() {
         <h1 className="text-2xl font-bold text-white">Create Account</h1>
         <p className="mt-2 text-slate-400">Join the community today!</p>
 
-        {error && (
-          <div className="mt-4 rounded-lg bg-red-500/10 border border-red-500/20 p-3 text-sm text-red-400">
-            {error}
-          </div>
-        )}
+        <div aria-live="polite">
+          {error && (
+            <div id="register-error" role="alert" className="mt-4 rounded-lg bg-red-500/10 border border-red-500/20 p-3 text-sm text-red-400">
+              {error}
+            </div>
+          )}
+        </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="mt-6 space-y-4">
           <div>
@@ -66,6 +68,8 @@ export default function Register() {
               {...register('username')}
               className="mt-1 block w-full"
               placeholder="cooluser123"
+              aria-invalid={!!error}
+              aria-describedby={error ? 'register-error' : undefined}
             />
             {errors.username && (
               <p className="text-red-400 text-sm mt-1">{errors.username.message}</p>
@@ -82,6 +86,8 @@ export default function Register() {
               {...register('email')}
               className="mt-1 block w-full"
               placeholder="you@example.com"
+              aria-invalid={!!error}
+              aria-describedby={error ? 'register-error' : undefined}
             />
             {errors.email && (
               <p className="text-red-400 text-sm mt-1">{errors.email.message}</p>
@@ -98,6 +104,8 @@ export default function Register() {
               {...register('password')}
               className="mt-1 block w-full"
               placeholder="••••••••"
+              aria-invalid={!!error}
+              aria-describedby={error ? 'register-error' : undefined}
             />
             {errors.password && (
               <p className="text-red-400 text-sm mt-1">{errors.password.message}</p>

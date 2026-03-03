@@ -183,11 +183,13 @@ export default function NewThread() {
           />
         </div>
 
-        {submitMutation.error && (
-          <div className="mt-4 rounded-lg bg-red-500/10 border border-red-500/20 p-3 text-sm text-red-400">
-            {submitMutation.error.message}
-          </div>
-        )}
+        <div aria-live="polite">
+          {submitMutation.error && (
+            <div role="alert" className="mt-4 rounded-lg bg-red-500/10 border border-red-500/20 p-3 text-sm text-red-400">
+              {submitMutation.error.message}
+            </div>
+          )}
+        </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="mt-6 space-y-4">
           <div>

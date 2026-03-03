@@ -240,7 +240,7 @@ export default function Settings() {
       <div className="flex flex-col gap-6 lg:flex-row">
         {/* Tabs - Mobile: horizontal scroll, Desktop: vertical sidebar */}
         <div className="shrink-0 lg:w-48">
-          <nav className="flex gap-1 overflow-x-auto pb-2 lg:flex-col lg:overflow-visible lg:pb-0">
+          <nav aria-label="Settings sections" className="flex gap-1 overflow-x-auto pb-2 lg:flex-col lg:overflow-visible lg:pb-0">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
@@ -298,9 +298,10 @@ export default function Settings() {
 
               <div className="space-y-4">
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-slate-300">Display Name</label>
+                  <label htmlFor="settings-display-name" className="mb-1 block text-sm font-medium text-slate-300">Display Name</label>
                   <Input
                     type="text"
+                    id="settings-display-name"
                     {...registerProfile('displayName')}
                     className="w-full"
                   />
@@ -310,8 +311,9 @@ export default function Settings() {
                 </div>
 
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-slate-300">Bio</label>
+                  <label htmlFor="settings-bio" className="mb-1 block text-sm font-medium text-slate-300">Bio</label>
                   <textarea
+                    id="settings-bio"
                     {...registerProfile('bio')}
                     rows={3}
                     placeholder="Tell us about yourself..."
@@ -323,9 +325,10 @@ export default function Settings() {
                 </div>
 
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-slate-300">Website</label>
+                  <label htmlFor="settings-website" className="mb-1 block text-sm font-medium text-slate-300">Website</label>
                   <Input
                     type="url"
+                    id="settings-website"
                     {...registerProfile('website')}
                     placeholder="https://example.com"
                     className="w-full"
@@ -348,9 +351,10 @@ export default function Settings() {
 
               <div className="space-y-4">
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-slate-300">Email Address</label>
+                  <label htmlFor="settings-email" className="mb-1 block text-sm font-medium text-slate-300">Email Address</label>
                   <Input
                     type="email"
+                    id="settings-email"
                     {...registerAccount('email')}
                     className="w-full"
                   />
@@ -364,9 +368,10 @@ export default function Settings() {
                 <h3 className="mb-4 font-medium text-white">Change Password</h3>
                 <div className="space-y-4">
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-slate-300">Current Password</label>
+                    <label htmlFor="settings-current-password" className="mb-1 block text-sm font-medium text-slate-300">Current Password</label>
                     <Input
                       type="password"
+                      id="settings-current-password"
                       {...registerAccount('currentPassword')}
                       className="w-full"
                     />
@@ -375,9 +380,10 @@ export default function Settings() {
                     )}
                   </div>
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-slate-300">New Password</label>
+                    <label htmlFor="settings-new-password" className="mb-1 block text-sm font-medium text-slate-300">New Password</label>
                     <Input
                       type="password"
+                      id="settings-new-password"
                       {...registerAccount('newPassword')}
                       className="w-full"
                     />
@@ -386,9 +392,10 @@ export default function Settings() {
                     )}
                   </div>
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-slate-300">Confirm New Password</label>
+                    <label htmlFor="settings-confirm-password" className="mb-1 block text-sm font-medium text-slate-300">Confirm New Password</label>
                     <Input
                       type="password"
+                      id="settings-confirm-password"
                       {...registerAccount('confirmPassword')}
                       className="w-full"
                     />
@@ -431,6 +438,9 @@ export default function Settings() {
                     <label key={item.key} className="flex items-center justify-between">
                       <span className="text-sm text-slate-300">{item.label}</span>
                       <button
+                        role="switch"
+                        aria-checked={emailNotifs[item.key as keyof typeof emailNotifs]}
+                        aria-label={`Email notification for ${item.label}`}
                         onClick={() => setEmailNotifs({ ...emailNotifs, [item.key]: !emailNotifs[item.key as keyof typeof emailNotifs] })}
                         className={`relative h-6 w-11 rounded-full transition-colors ${
                           emailNotifs[item.key as keyof typeof emailNotifs] ? 'bg-indigo-600' : 'bg-slate-600'
@@ -460,6 +470,9 @@ export default function Settings() {
                     <label key={item.key} className="flex items-center justify-between">
                       <span className="text-sm text-slate-300">{item.label}</span>
                       <button
+                        role="switch"
+                        aria-checked={pushNotifs[item.key as keyof typeof pushNotifs]}
+                        aria-label={`Push notification for ${item.label}`}
                         onClick={() => setPushNotifs({ ...pushNotifs, [item.key]: !pushNotifs[item.key as keyof typeof pushNotifs] })}
                         className={`relative h-6 w-11 rounded-full transition-colors ${
                           pushNotifs[item.key as keyof typeof pushNotifs] ? 'bg-indigo-600' : 'bg-slate-600'
