@@ -1,5 +1,5 @@
 {
-  "name": "@forumline/server-sdk",
+  "name": "@johnvondrashek/forumline-server-sdk",
   "version": "0.1.0",
   "description": "Forumline server SDK for forum operators",
   "type": "module",
@@ -12,12 +12,20 @@
     }
   },
   "files": ["dist"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/JohnVonDrashek/forum-chat-voice.git",
+    "directory": "packages/server-sdk"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
   "scripts": {
     "build": "tsc",
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@forumline/protocol": "file:../protocol"
+    "@johnvondrashek/forumline-protocol": "^0.1.0"
   },
   "devDependencies": {
     "typescript": "^5.9.3"

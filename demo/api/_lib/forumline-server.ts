@@ -1,5 +1,5 @@
-import { ForumlineServer, ForumlineSupabaseAdapter } from '@forumline/server-sdk'
-import type { ForumlineIdentity, ForumNotification } from '@forumline/protocol'
+import { ForumlineServer, ForumlineSupabaseAdapter } from '@johnvondrashek/forumline-server-sdk'
+import type { ForumlineIdentity, ForumNotification } from '@johnvondrashek/forumline-protocol'
 import { createClient } from '@supabase/supabase-js'
 
 const DOMAIN = 'forum-chat-voice.vercel.app'
@@ -69,10 +69,6 @@ export function getForumlineServer(): ForumlineServer {
           const { data: { user: hubUser } } = await hubSb.auth.getUser(hubAccessToken)
           if (hubUser?.email) {
             // Look up local user by email
-            const { data: { users: localUsers } } = await supabase.auth.admin.listUsers({
-              perPage: 1,
-            })
-            // listUsers doesn't filter by email, so use a direct query
             const { data: localUsersByEmail } = await supabase.auth.admin.listUsers()
             const matchingUser = localUsersByEmail?.users?.find(u => u.email === hubUser.email)
             if (matchingUser) {
@@ -135,7 +131,7 @@ export function getForumlineServer(): ForumlineServer {
       return newUser.user.id
     },
 
-    async afterAuth({ userId, identity, hubAccessToken, request }) {
+    async afterAuth({ userId, request }) {
       const supabase = createClient(supabaseUrl, serviceRoleKey)
 
       // Check if user has an existing Supabase session (connecting from Settings)

@@ -1,5 +1,5 @@
 /**
- * @forumline/server-sdk — Server SDK for Forumline forum operators.
+ * @johnvondrashek/forumline-server-sdk — Server SDK for Forumline forum operators.
  *
  * Provides helpers for implementing the Forumline federation protocol.
  */

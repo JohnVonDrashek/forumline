@@ -10,6 +10,8 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    permissions:
+      packages: read
     steps:
       - uses: actions/checkout@v4
 
@@ -19,6 +21,12 @@ jobs:
 
       - name: Install Vercel CLI
         run: npm i -g vercel
+
+      - name: Install demo dependencies
+        run: npm install
+        working-directory: demo
+        env:
+          GITHUB_PACKAGES_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Pull Vercel environment
         run: vercel pull --yes --environment=production --token ${{ secrets.VERCEL_TOKEN }}

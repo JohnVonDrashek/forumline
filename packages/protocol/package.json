@@ -1,5 +1,5 @@
 {
-  "name": "@forumline/protocol",
+  "name": "@johnvondrashek/forumline-protocol",
   "version": "0.1.0",
   "description": "Forumline federation protocol types",
   "type": "module",
@@ -12,6 +12,14 @@
     }
   },
   "files": ["dist"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/JohnVonDrashek/forum-chat-voice.git",
+    "directory": "packages/protocol"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
   "scripts": {
     "build": "tsc",
     "clean": "rm -rf dist"

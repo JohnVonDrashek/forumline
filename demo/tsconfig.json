@@ -17,10 +17,10 @@
     "noFallthroughCasesInSwitch": true,
     "paths": {
       "@/*": ["./src/*"],
-      "@forumline/protocol": ["../packages/protocol/src/index.ts"],
-      "@forumline/central-services-client": ["../packages/central-services-client/src/index.ts"],
-      "@forumline/react": ["../packages/react/src/index.ts"],
-      "@forumline/server-sdk": ["../packages/server-sdk/src/index.ts"]
+      "@johnvondrashek/forumline-protocol": ["../packages/protocol/src/index.ts"],
+      "@johnvondrashek/forumline-central-services-client": ["../packages/central-services-client/src/index.ts"],
+      "@johnvondrashek/forumline-react": ["../packages/react/src/index.ts"],
+      "@johnvondrashek/forumline-server-sdk": ["../packages/server-sdk/src/index.ts"]
     }
   },
   "include": ["src"]

@@ -1,5 +1,5 @@
 // ============================================================================
-// @forumline/protocol — Federation Protocol Types
+// @johnvondrashek/forumline-protocol — Federation Protocol Types
 //
 // Zero-dependency TypeScript types that define the Forumline federation contract.
 // This is the source of truth for how forums communicate with the Forumline app.

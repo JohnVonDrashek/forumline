@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, useRef, useCallback, type ReactNode } from 'react'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
-import { CentralServicesClient } from '@forumline/central-services-client'
+import { CentralServicesClient } from '@johnvondrashek/forumline-central-services-client'
 
 interface HubContextType {
   hubClient: CentralServicesClient | null

@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import type { GenericRequest, GenericResponse } from '@forumline/server-sdk'
+import type { GenericRequest, GenericResponse } from '@johnvondrashek/forumline-server-sdk'
 
 /** Parse cookies from a Cookie header string */
 function parseCookies(cookieHeader: string): Record<string, string> {

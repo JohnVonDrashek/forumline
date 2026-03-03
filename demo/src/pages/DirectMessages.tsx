@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
-import { useHub } from '@forumline/react'
+import { useHub } from '@johnvondrashek/forumline-react'
 import Avatar from '../components/Avatar'
 import Button from '../components/ui/Button'
 import Input from '../components/ui/Input'
@@ -10,7 +10,7 @@ import Card from '../components/ui/Card'
 import Skeleton from '../components/ui/Skeleton'
 import { formatShortTimeAgo, formatMessageTime } from '../lib/dateFormatters'
 import { queryKeys, queryOptions } from '../lib/queries'
-import type { HubProfile } from '@forumline/protocol'
+import type { HubProfile } from '@johnvondrashek/forumline-protocol'
 
 interface DM {
   id: string

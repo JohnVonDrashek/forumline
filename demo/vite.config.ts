@@ -27,12 +27,14 @@ export default defineConfig(({ mode }) => {
     plugins: [react(), tailwindcss()],
     base: '/',
     resolve: {
-      alias: {
-        '@forumline/protocol': path.resolve(__dirname, '../packages/protocol/src/index.ts'),
-        '@forumline/central-services-client': path.resolve(__dirname, '../packages/central-services-client/src/index.ts'),
-        '@forumline/react': path.resolve(__dirname, '../packages/react/src/index.ts'),
-        '@forumline/server-sdk': path.resolve(__dirname, '../packages/server-sdk/src/index.ts'),
-      },
+      // In dev mode, alias to package source for hot reload.
+      // In production, use published packages from node_modules.
+      alias: mode === 'development' ? {
+        '@johnvondrashek/forumline-protocol': path.resolve(__dirname, '../packages/protocol/src/index.ts'),
+        '@johnvondrashek/forumline-central-services-client': path.resolve(__dirname, '../packages/central-services-client/src/index.ts'),
+        '@johnvondrashek/forumline-react': path.resolve(__dirname, '../packages/react/src/index.ts'),
+        '@johnvondrashek/forumline-server-sdk': path.resolve(__dirname, '../packages/server-sdk/src/index.ts'),
+      } : {},
     },
     clearScreen: false,
     server: {
