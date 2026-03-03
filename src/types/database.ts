@@ -349,6 +349,33 @@ export type Database = {
           }
         ]
       }
+      voice_presence: {
+        Row: {
+          id: string
+          user_id: string
+          room_slug: string
+          joined_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          room_slug: string
+          joined_at?: string
+        }
+        Update: {
+          room_slug?: string
+          joined_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "voice_presence_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -376,6 +403,7 @@ export type DirectMessage = Database['public']['Tables']['direct_messages']['Row
 export type VoiceRoom = Database['public']['Tables']['voice_rooms']['Row']
 export type Bookmark = Database['public']['Tables']['bookmarks']['Row']
 export type Notification = Database['public']['Tables']['notifications']['Row']
+export type VoicePresence = Database['public']['Tables']['voice_presence']['Row']
 
 // Insert types
 export type ProfileInsert = Database['public']['Tables']['profiles']['Insert']
