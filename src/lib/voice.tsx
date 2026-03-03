@@ -18,6 +18,19 @@ interface RoomParticipantInfo {
   identities: string[]
 }
 
+interface VoicePresenceRow {
+  id: string
+  user_id: string
+  room_slug: string
+  joined_at: string
+  profile?: {
+    id: string
+    username: string
+    display_name: string | null
+    avatar_url: string | null
+  }
+}
+
 interface VoiceContextType {
   // Connection state
   isConnected: boolean
@@ -74,10 +87,8 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
   const [roomParticipantCounts, setRoomParticipantCounts] = useState<Record<string, RoomParticipantInfo>>({})
   const [avatarCache, setAvatarCache] = useState<Record<string, string | null>>({})
 
-  // Ref to track connected room slug for use in polling without triggering re-renders
+  // Ref to track connected room slug for use in callbacks without triggering re-renders
   const connectedRoomSlugRef = useRef<string | null>(null)
-  // Ref to allow leaveRoom/joinRoom to trigger a re-poll without declaration-order issues
-  const fetchParticipantCountsRef = useRef<() => void>(() => {})
 
   // Cache of participant avatar URLs so we don't re-fetch every update
   const avatarCacheRef = useRef<Record<string, string | null>>({})
@@ -130,6 +141,97 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  // Fetch all voice presence and build room participant counts
+  const fetchVoicePresence = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('voice_presence')
+        .select(`
+          id,
+          user_id,
+          room_slug,
+          joined_at,
+          profile:profiles(id, username, display_name, avatar_url)
+        `)
+
+      if (error) {
+        console.error('Failed to fetch voice presence:', error)
+        return
+      }
+
+      const counts: Record<string, RoomParticipantInfo> = {}
+      const newAvatarUpdates: Record<string, string | null> = {}
+
+      for (const row of (data || []) as VoicePresenceRow[]) {
+        if (!counts[row.room_slug]) {
+          counts[row.room_slug] = { count: 0, names: [], identities: [] }
+        }
+        counts[row.room_slug].count++
+        counts[row.room_slug].identities.push(row.user_id)
+
+        // Get name from profile
+        const name = row.profile?.display_name || row.profile?.username || row.user_id.slice(0, 8)
+        counts[row.room_slug].names.push(name)
+
+        // Cache avatar URL
+        if (row.profile && avatarCacheRef.current[row.user_id] === undefined) {
+          avatarCacheRef.current[row.user_id] = row.profile.avatar_url
+          newAvatarUpdates[row.user_id] = row.profile.avatar_url
+        }
+      }
+
+      setRoomParticipantCounts(counts)
+
+      if (Object.keys(newAvatarUpdates).length > 0) {
+        setAvatarCache(prev => ({ ...prev, ...newAvatarUpdates }))
+      }
+    } catch (err) {
+      console.error('Failed to fetch voice presence:', err)
+    }
+  }, [])
+
+  // Write presence to Supabase when joining a room
+  const writePresence = useCallback(async (roomSlug: string) => {
+    if (!user) return
+
+    try {
+      // Upsert presence - the unique constraint on user_id ensures one room per user
+      const { error } = await supabase
+        .from('voice_presence')
+        .upsert({
+          user_id: user.id,
+          room_slug: roomSlug,
+          joined_at: new Date().toISOString(),
+        }, {
+          onConflict: 'user_id',
+        })
+
+      if (error) {
+        console.error('Failed to write voice presence:', error)
+      }
+    } catch (err) {
+      console.error('Failed to write voice presence:', err)
+    }
+  }, [user])
+
+  // Delete presence from Supabase when leaving
+  const deletePresence = useCallback(async () => {
+    if (!user) return
+
+    try {
+      const { error } = await supabase
+        .from('voice_presence')
+        .delete()
+        .eq('user_id', user.id)
+
+      if (error) {
+        console.error('Failed to delete voice presence:', error)
+      }
+    } catch (err) {
+      console.error('Failed to delete voice presence:', err)
+    }
+  }, [user])
+
   const leaveRoom = useCallback(() => {
     if (livekitRoomRef.current) {
       // Detach all audio elements before disconnecting
@@ -152,9 +254,10 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
     setIsSpeaking(false)
     setConnectError(null)
     connectedRoomSlugRef.current = null
-    // Re-poll immediately so the lobby reflects the change
-    setTimeout(() => fetchParticipantCountsRef.current(), 500)
-  }, [])
+
+    // Delete presence from Supabase
+    deletePresence()
+  }, [deletePresence])
 
   const joinRoom = useCallback(async (slug: string, name: string) => {
     if (!user) return
@@ -240,6 +343,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
         setIsSpeaking(false)
         connectedRoomSlugRef.current = null
         livekitRoomRef.current = null
+        deletePresence()
       })
 
       await room.connect(livekitUrl, token)
@@ -252,15 +356,16 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
       setConnectedRoomName(name)
       connectedRoomSlugRef.current = slug
       updateParticipants()
-      // Re-poll so sidebar count updates immediately
-      setTimeout(() => fetchParticipantCountsRef.current(), 500)
+
+      // Write presence to Supabase
+      writePresence(slug)
     } catch (err) {
       setConnectError(err instanceof Error ? err.message : 'Failed to connect')
       livekitRoomRef.current = null
     } finally {
       setIsConnecting(false)
     }
-  }, [user, updateParticipants])
+  }, [user, updateParticipants, writePresence, deletePresence])
 
   const toggleMute = useCallback(async () => {
     const room = livekitRoomRef.current
@@ -296,60 +401,32 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
     }
   }, [isDeafened, isMuted])
 
-  // Fetch participant counts for all rooms
-  const fetchParticipantCounts = useCallback(async () => {
-    try {
-      const resp = await fetch('/api/livekit-participants-all')
-      if (!resp.ok) return
-      const data = await resp.json()
-      const rooms: Record<string, { count: number; names: string[]; identities?: string[] }> = data.rooms || {}
-
-      const counts: Record<string, RoomParticipantInfo> = {}
-      const allIdentities: string[] = []
-      for (const [slug, info] of Object.entries(rooms)) {
-        const identities = info.identities || []
-        counts[slug] = { count: info.count, names: info.names, identities }
-        allIdentities.push(...identities)
-      }
-      setRoomParticipantCounts(counts)
-
-      // Fetch avatar URLs for any identities not in cache
-      const uncached = allIdentities.filter(id => avatarCacheRef.current[id] === undefined)
-      if (uncached.length > 0) {
-        supabase
-          .from('profiles')
-          .select('id, avatar_url')
-          .in('id', uncached)
-          .then(({ data: profiles }) => {
-            if (!profiles) return
-            const updates: Record<string, string | null> = {}
-            for (const p of profiles) {
-              avatarCacheRef.current[p.id] = p.avatar_url
-              updates[p.id] = p.avatar_url
-            }
-            for (const id of uncached) {
-              if (avatarCacheRef.current[id] === undefined) {
-                avatarCacheRef.current[id] = null
-                updates[id] = null
-              }
-            }
-            setAvatarCache(prev => ({ ...prev, ...updates }))
-          })
-      }
-    } catch {
-      // ignore
-    }
-  }, [])
-
-  // Keep ref in sync so leaveRoom/joinRoom can trigger a re-poll
-  fetchParticipantCountsRef.current = fetchParticipantCounts
-
-  // Poll participant counts every 5 seconds
+  // Subscribe to voice_presence changes via Supabase Realtime
   useEffect(() => {
-    fetchParticipantCounts()
-    const interval = setInterval(fetchParticipantCounts, 5000)
-    return () => clearInterval(interval)
-  }, [fetchParticipantCounts])
+    // Initial fetch
+    fetchVoicePresence()
+
+    // Subscribe to realtime changes
+    const channel = supabase
+      .channel('voice-presence-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'voice_presence',
+        },
+        () => {
+          // Re-fetch all presence data on any change
+          fetchVoicePresence()
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [fetchVoicePresence])
 
   // Graceful disconnect on page unload
   useEffect(() => {
@@ -357,10 +434,23 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
       if (livekitRoomRef.current) {
         livekitRoomRef.current.disconnect()
       }
+      // Note: Can't await deletePresence here, but Supabase will clean up stale records
+      // We could use navigator.sendBeacon for a more reliable cleanup
+      if (user) {
+        // Fire-and-forget delete via fetch with keepalive
+        fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/voice_presence?user_id=eq.${user.id}`, {
+          method: 'DELETE',
+          headers: {
+            'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          },
+          keepalive: true,
+        }).catch(() => {})
+      }
     }
     window.addEventListener('beforeunload', handleUnload)
     return () => window.removeEventListener('beforeunload', handleUnload)
-  }, [])
+  }, [user])
 
   // Cleanup on unmount
   useEffect(() => {
