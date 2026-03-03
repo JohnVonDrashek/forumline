@@ -40,17 +40,13 @@ body {
 /* Chat page layout - remove padding and fill available space */
 .chat-page-wrapper {
   margin: -1rem;
+  /* Use dvh for mobile browsers that have dynamic address bars */
   height: calc(100vh - 3.5rem);
+  height: calc(100dvh - 3.5rem);
 }
 
 @media (min-width: 640px) {
   .chat-page-wrapper {
     margin: -1.5rem;
-  }
-}
-
-@media (min-width: 1024px) {
-  .chat-page-wrapper {
-    height: calc(100vh - 3.5rem);
   }
 }
