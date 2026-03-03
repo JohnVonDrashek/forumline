@@ -1,5 +1,5 @@
 {
-  "name": "@forumline/react",
+  "name": "@johnvondrashek/forumline-react",
   "version": "0.1.0",
   "type": "module",
   "main": "./dist/index.js",
@@ -10,9 +10,22 @@
       "import": "./dist/index.js"
     }
   },
+  "files": ["dist"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/JohnVonDrashek/forum-chat-voice.git",
+    "directory": "packages/react"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist"
+  },
   "dependencies": {
-    "@forumline/protocol": "file:../protocol",
-    "@forumline/central-services-client": "file:../central-services-client"
+    "@johnvondrashek/forumline-protocol": "^0.1.0",
+    "@johnvondrashek/forumline-central-services-client": "^0.1.0"
   },
   "peerDependencies": {
     "react": "^18 || ^19",

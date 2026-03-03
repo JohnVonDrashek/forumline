@@ -1,7 +1,7 @@
 import { lazy, Suspense } from 'react'
 import { Routes, Route } from 'react-router-dom'
 import { AuthProvider, useAuth } from './lib/auth'
-import { ForumProvider, HubProvider } from '@forumline/react'
+import { ForumProvider, HubProvider } from '@johnvondrashek/forumline-react'
 import { VoiceProvider } from './lib/voice'
 import ScrollToTop from './components/ScrollToTop'
 import Layout from './components/Layout'

@@ -8,7 +8,7 @@ import type {
   ForumlineIdentity,
   ForumNotification,
   ForumNotificationType,
-} from '@forumline/protocol'
+} from '@johnvondrashek/forumline-protocol'
 
 export interface SupabaseAdapterConfig {
   /** The forum's domain (for notifications) */

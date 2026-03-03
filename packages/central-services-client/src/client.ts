@@ -1,4 +1,4 @@
-import type { HubDirectMessage, HubDmConversation, HubProfile } from '@forumline/protocol'
+import type { HubDirectMessage, HubDmConversation, HubProfile } from '@johnvondrashek/forumline-protocol'
 
 /**
  * Headless HTTP client for Forumline Central Services.

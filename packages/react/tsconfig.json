@@ -10,11 +10,7 @@
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "jsx": "react-jsx",
-    "paths": {
-      "@forumline/protocol": ["../protocol/src/index.ts"],
-      "@forumline/central-services-client": ["../central-services-client/src/index.ts"]
-    }
+    "jsx": "react-jsx"
   },
   "include": ["src"]
 }

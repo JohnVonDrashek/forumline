@@ -6,7 +6,7 @@
  */
 
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react'
-import type { UnreadCounts } from '@forumline/protocol'
+import type { UnreadCounts } from '@johnvondrashek/forumline-protocol'
 import { isTauri } from './tauri'
 
 // ============================================================================
