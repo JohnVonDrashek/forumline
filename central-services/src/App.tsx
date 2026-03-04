@@ -8,7 +8,11 @@ const hubSupabaseUrl = import.meta.env.VITE_HUB_SUPABASE_URL
 const hubSupabaseAnonKey = import.meta.env.VITE_HUB_SUPABASE_ANON_KEY
 
 // Hub Supabase client — authenticates directly with the hub (same-origin)
-const hubSupabase = createClient(hubSupabaseUrl, hubSupabaseAnonKey)
+// Custom storageKey avoids "Multiple GoTrueClient instances" warning when
+// forum iframes create their own Supabase clients in the same browser context.
+const hubSupabase = createClient(hubSupabaseUrl, hubSupabaseAnonKey, {
+  auth: { storageKey: 'forumline-hub-auth' },
+})
 
 const queryClient = new QueryClient({
   defaultOptions: {
