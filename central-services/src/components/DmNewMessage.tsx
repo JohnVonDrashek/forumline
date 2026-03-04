@@ -67,7 +67,7 @@ export default function DmNewMessage({ onSelectUser }: DmNewMessageProps) {
             onClick={() => onSelectUser(profile.id)}
             className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-slate-800"
           >
-            <Avatar avatarUrl={profile.avatar_url} size={40} />
+            <Avatar avatarUrl={profile.avatar_url} seed={profile.username} size={40} />
             <div className="min-w-0">
               <div className="font-medium text-white">
                 {profile.display_name || profile.username}

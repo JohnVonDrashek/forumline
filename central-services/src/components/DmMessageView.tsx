@@ -110,7 +110,7 @@ export default function DmMessageView({ recipientId }: DmMessageViewProps) {
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center gap-3 border-b border-slate-700 px-4 py-3">
-        <Avatar avatarUrl={currentConversation?.recipientAvatarUrl} size={32} />
+        <Avatar avatarUrl={currentConversation?.recipientAvatarUrl} seed={recipientName} size={32} />
         <h3 className="font-medium text-white">{recipientName}</h3>
       </div>
 

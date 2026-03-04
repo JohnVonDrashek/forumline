@@ -74,7 +74,7 @@ export default function DmConversationList({ onSelectConversation }: DmConversat
           className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-slate-800"
         >
           <div className="relative">
-            <Avatar avatarUrl={conversation.recipientAvatarUrl} size={40} />
+            <Avatar avatarUrl={conversation.recipientAvatarUrl} seed={conversation.recipientName} size={40} />
             {conversation.unreadCount > 0 && (
               <div className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-indigo-500 text-xs font-medium text-white">
                 {conversation.unreadCount}

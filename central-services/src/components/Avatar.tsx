@@ -4,13 +4,17 @@ interface AvatarProps {
   size?: number
   className?: string
   avatarUrl?: string | null
+  /** Seed for DiceBear fallback avatar (e.g. username). Used when avatarUrl is null. */
+  seed?: string
 }
 
-function Avatar({ size = 40, className = '', avatarUrl }: AvatarProps) {
-  if (avatarUrl) {
+function Avatar({ size = 40, className = '', avatarUrl, seed }: AvatarProps) {
+  const src = avatarUrl || (seed ? `https://api.dicebear.com/9.x/avataaars/svg?seed=${encodeURIComponent(seed)}&size=256` : null)
+
+  if (src) {
     return (
       <img
-        src={avatarUrl}
+        src={src}
         alt=""
         loading="lazy"
         decoding="async"
