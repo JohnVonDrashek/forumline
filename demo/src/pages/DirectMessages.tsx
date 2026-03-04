@@ -33,36 +33,6 @@ export default function DirectMessages() {
   const [hubSearchResults, setHubSearchResults] = useState<HubProfile[]>([])
   const [searching, setSearching] = useState(false)
 
-  // ===== CONNECTION GATE =====
-  if (!isHubConnected) {
-    return (
-      <div className="mx-auto max-w-6xl">
-        <Card className="flex h-[calc(100vh-7rem)] items-center justify-center">
-          <div className="text-center">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-slate-700">
-              <svg className="h-8 w-8 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
-              </svg>
-            </div>
-            <h3 className="font-medium text-white">Connect to Forumline</h3>
-            <p className="mt-2 max-w-sm text-sm text-slate-400">
-              Direct messages are powered by Forumline, enabling cross-forum conversations. Connect your account to get started.
-            </p>
-            <a
-              href="/api/forumline/auth"
-              className="mt-4 inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500"
-            >
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
-              </svg>
-              Connect to Forumline
-            </a>
-          </div>
-        </Card>
-      </div>
-    )
-  }
-
   // ===== HUB CONVERSATIONS =====
   const { data: hubConversations = [] } = useQuery({
     queryKey: queryKeys.hubDmConversations,
@@ -224,6 +194,36 @@ export default function DirectMessages() {
   const showMessages = !!recipientId
 
   const recipientName = currentConversation?.recipientName || 'User'
+
+  // ===== CONNECTION GATE =====
+  if (!isHubConnected) {
+    return (
+      <div className="mx-auto max-w-6xl">
+        <Card className="flex h-[calc(100vh-7rem)] items-center justify-center">
+          <div className="text-center">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-slate-700">
+              <svg className="h-8 w-8 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+              </svg>
+            </div>
+            <h3 className="font-medium text-white">Connect to Forumline</h3>
+            <p className="mt-2 max-w-sm text-sm text-slate-400">
+              Direct messages are powered by Forumline, enabling cross-forum conversations. Connect your account to get started.
+            </p>
+            <a
+              href="/api/forumline/auth"
+              className="mt-4 inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500"
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+              </svg>
+              Connect to Forumline
+            </a>
+          </div>
+        </Card>
+      </div>
+    )
+  }
 
   return (
     <div className="mx-auto max-w-6xl">
