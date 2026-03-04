@@ -26,10 +26,11 @@ jobs:
         run: |
           cd packages/protocol
           npm run build
-          npm publish 2>&1 || {
-            if echo "$?" | grep -q "already exists"; then
+          OUTPUT=$(npm publish 2>&1) && echo "$OUTPUT" || {
+            if echo "$OUTPUT" | grep -qi "cannot publish over the previously published"; then
               echo "Version already published, skipping"
             else
+              echo "$OUTPUT"
               exit 1
             fi
           }
@@ -40,10 +41,11 @@ jobs:
         run: |
           cd packages/server-sdk
           npm run build
-          npm publish 2>&1 || {
-            if echo "$?" | grep -q "already exists"; then
+          OUTPUT=$(npm publish 2>&1) && echo "$OUTPUT" || {
+            if echo "$OUTPUT" | grep -qi "cannot publish over the previously published"; then
               echo "Version already published, skipping"
             else
+              echo "$OUTPUT"
               exit 1
             fi
           }
@@ -54,10 +56,11 @@ jobs:
         run: |
           cd packages/central-services-client
           npm run build
-          npm publish 2>&1 || {
-            if echo "$?" | grep -q "already exists"; then
+          OUTPUT=$(npm publish 2>&1) && echo "$OUTPUT" || {
+            if echo "$OUTPUT" | grep -qi "cannot publish over the previously published"; then
               echo "Version already published, skipping"
             else
+              echo "$OUTPUT"
               exit 1
             fi
           }
@@ -68,10 +71,11 @@ jobs:
         run: |
           cd packages/react
           npm run build
-          npm publish 2>&1 || {
-            if echo "$?" | grep -q "already exists"; then
+          OUTPUT=$(npm publish 2>&1) && echo "$OUTPUT" || {
+            if echo "$OUTPUT" | grep -qi "cannot publish over the previously published"; then
               echo "Version already published, skipping"
             else
+              echo "$OUTPUT"
               exit 1
             fi
           }
