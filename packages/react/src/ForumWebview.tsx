@@ -142,7 +142,7 @@ export default function ForumWebview({ forum, authUrl, onAuthed, onSignedOut, on
           title={`${forum.name} forum`}
           className="h-full w-full border-0"
           sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-          allow="clipboard-read; clipboard-write; microphone"
+          allow="clipboard-read; clipboard-write; microphone; display-capture"
           onLoad={handleLoad}
         />
       </div>
