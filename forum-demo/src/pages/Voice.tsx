@@ -96,12 +96,16 @@ export default function Voice() {
       isMuted={voice.isMuted}
       isDeafened={voice.isDeafened}
       isSpeaking={voice.isSpeaking}
+      isScreenSharing={voice.isScreenSharing}
+      screenShareParticipant={voice.screenShareParticipant}
+      screenShareTrack={voice.screenShareTrack}
       connectedRoomName={voice.connectedRoomName}
       connectError={voice.connectError}
       joinRoom={voice.joinRoom}
       leaveRoom={voice.leaveRoom}
       toggleMute={voice.toggleMute}
       toggleDeafen={voice.toggleDeafen}
+      toggleScreenShare={voice.toggleScreenShare}
     />
   )
 }
