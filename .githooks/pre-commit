@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+#
+# Pre-commit hook: verify lockfiles are in sync with package.json changes.
+# If any package.json is staged with a version change, ensure the corresponding
+# package-lock.json is also staged.
+#
+
+set -euo pipefail
+
+LOCKFILE_DIRS=("." "forum-demo" "central-services")
+
+missing=()
+
+for dir in "${LOCKFILE_DIRS[@]}"; do
+  pkg="$dir/package.json"
+  lock="$dir/package-lock.json"
+
+  # Check if package.json is staged
+  if git diff --cached --name-only | grep -qx "$pkg"; then
+    # Check if the diff includes a version-related change (dependency or version bump)
+    if git diff --cached "$pkg" | grep -qE '^\+.*"(version|@johnvondrashek/)'; then
+      # Ensure the lockfile is also staged
+      if ! git diff --cached --name-only | grep -qx "$lock"; then
+        missing+=("$lock (required by staged changes in $pkg)")
+      fi
+    fi
+  fi
+done
+
+if [ ${#missing[@]} -gt 0 ]; then
+  echo "ERROR: Lockfile(s) not staged but required:"
+  for m in "${missing[@]}"; do
+    echo "  - $m"
+  done
+  echo ""
+  echo "Run 'npm install --package-lock-only' in the affected directories,"
+  echo "then stage the lockfile(s) and retry."
+  exit 1
+fi
