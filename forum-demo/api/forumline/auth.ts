@@ -47,6 +47,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const hubToken = req.query.hub_token as string | undefined
   if (hubToken) {
     try {
+      console.log('[Forumline:Auth] Starting server-side auth with hub_token')
       const state = crypto.randomBytes(16).toString('hex')
       const redirectUri = `${siteUrl}/api/forumline/auth/callback`
 
@@ -56,25 +57,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       authorizeUrl.searchParams.set('redirect_uri', redirectUri)
       authorizeUrl.searchParams.set('state', state)
 
+      console.log('[Forumline:Auth] Step 1: Calling hub authorize')
       const authorizeResponse = await fetch(authorizeUrl.toString(), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ access_token: hubToken }),
-        redirect: 'manual', // Don't follow the redirect — we need to extract the code
+        redirect: 'manual',
       })
+      console.log('[Forumline:Auth] Hub authorize response:', authorizeResponse.status, authorizeResponse.type)
 
-      if (authorizeResponse.status !== 302) {
-        console.error('[Forumline:Auth] Hub authorize failed:', authorizeResponse.status)
-        return res.redirect(302, `${siteUrl}/login?error=auth_failed`)
-      }
-
+      // With redirect: 'manual', Node.js fetch may return status 0 with type 'opaqueredirect'
+      // In that case, we need to follow the redirect ourselves
       const location = authorizeResponse.headers.get('location')
+      console.log('[Forumline:Auth] Location header:', location)
+
       if (!location) {
-        console.error('[Forumline:Auth] No redirect location from hub authorize')
+        // If no redirect, try reading the response body for error info
+        const body = await authorizeResponse.text()
+        console.error('[Forumline:Auth] No redirect from hub authorize. Status:', authorizeResponse.status, 'Body:', body.slice(0, 200))
         return res.redirect(302, `${siteUrl}/login?error=auth_failed`)
       }
 
-      const callbackUrl = new URL(location)
+      const callbackUrl = new URL(location, authorizeUrl.toString())
       const code = callbackUrl.searchParams.get('code')
       if (!code) {
         console.error('[Forumline:Auth] No code in hub redirect:', location)
@@ -82,6 +86,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       // Step 2: Exchange code for identity token
+      console.log('[Forumline:Auth] Step 2: Exchanging code for token')
       const tokenResponse = await fetch(`${hubUrl}/api/oauth/token`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -94,12 +99,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       })
 
       if (!tokenResponse.ok) {
-        console.error('[Forumline:Auth] Token exchange failed:', await tokenResponse.text())
+        const errText = await tokenResponse.text()
+        console.error('[Forumline:Auth] Token exchange failed:', tokenResponse.status, errText)
         return res.redirect(302, `${siteUrl}/login?error=auth_failed`)
       }
 
       const tokenData = await tokenResponse.json()
       const { identity, identity_token, hub_access_token } = tokenData
+      console.log('[Forumline:Auth] Step 2 complete. Identity:', identity?.forumline_id, identity?.username)
 
       if (!identity?.forumline_id || !identity?.username) {
         console.error('[Forumline:Auth] Invalid identity from hub')
@@ -107,7 +114,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       // Step 3: Create or link local user
+      console.log('[Forumline:Auth] Step 3: Creating/linking local user')
       const localUserId = await createOrLinkUser(identity, hub_access_token || null)
+      console.log('[Forumline:Auth] Step 3 complete. Local user ID:', localUserId)
 
       // Step 4: Set cookies and redirect
       const setCookies = [
@@ -120,7 +129,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       res.setHeader('Set-Cookie', setCookies)
 
       // Step 5: Call afterAuth hook for session generation
+      console.log('[Forumline:Auth] Step 5: Calling afterAuth')
       const redirectUrl = await afterAuth({ userId: localUserId })
+      console.log('[Forumline:Auth] Step 5 complete. Redirect:', redirectUrl?.slice(0, 50))
+
       if (redirectUrl) {
         return res.redirect(302, redirectUrl)
       }
