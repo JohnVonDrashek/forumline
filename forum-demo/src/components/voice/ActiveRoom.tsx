@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { useRef, useEffect } from 'react'
 import Card from '../ui/Card'
 import ParticipantList from './ParticipantList'
 import type { VoiceParticipant } from '../../lib/voice'
@@ -22,12 +23,16 @@ export interface ActiveRoomProps {
   isMuted: boolean
   isDeafened: boolean
   isSpeaking: boolean
+  isScreenSharing: boolean
+  screenShareParticipant: { id: string; name: string } | null
+  screenShareTrack: MediaStreamTrack | null
   connectedRoomName: string | null
   connectError: string | null
   joinRoom: (slug: string, name: string) => Promise<void>
   leaveRoom: () => void
   toggleMute: () => Promise<void>
   toggleDeafen: () => void
+  toggleScreenShare: () => Promise<void>
 }
 
 export default function ActiveRoom({
@@ -40,13 +45,26 @@ export default function ActiveRoom({
   isMuted,
   isDeafened,
   isSpeaking,
+  isScreenSharing,
+  screenShareParticipant,
+  screenShareTrack,
   connectedRoomName,
   connectError,
   joinRoom,
   leaveRoom,
   toggleMute,
   toggleDeafen,
+  toggleScreenShare,
 }: ActiveRoomProps) {
+  const videoRef = useRef<HTMLVideoElement>(null)
+
+  useEffect(() => {
+    if (videoRef.current && screenShareTrack) {
+      videoRef.current.srcObject = new MediaStream([screenShareTrack])
+    } else if (videoRef.current) {
+      videoRef.current.srcObject = null
+    }
+  }, [screenShareTrack])
   return (
     <div className="mx-auto max-w-4xl">
       <Card className="mb-6 p-4">
@@ -81,6 +99,23 @@ export default function ActiveRoom({
         <div className="mb-4 rounded-lg border border-yellow-500/30 bg-yellow-500/10 p-3 text-center text-sm text-yellow-400">
           You're connected to <strong>{connectedRoomName}</strong>. Joining this room will disconnect you from there.
         </div>
+      )}
+
+      {screenShareTrack && (
+        <Card className="mb-4 p-4">
+          <p className="mb-2 text-sm text-slate-400">
+            {screenShareParticipant?.id === user?.id
+              ? 'You are sharing your screen'
+              : `${screenShareParticipant?.name || 'Someone'} is sharing their screen`}
+          </p>
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            className="w-full rounded-lg bg-black"
+            style={{ aspectRatio: 'auto' }}
+          />
+        </Card>
       )}
 
       <Card className="p-6">
@@ -154,6 +189,22 @@ export default function ActiveRoom({
                 </button>
 
                 <button
+                  onClick={toggleScreenShare}
+                  className={`rounded-full p-4 transition-colors ${
+                    isScreenSharing
+                      ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
+                      : 'bg-slate-700 text-white hover:bg-slate-600'
+                  }`}
+                  title={isScreenSharing ? 'Stop sharing' : 'Share screen'}
+                  aria-label={isScreenSharing ? 'Stop screen sharing' : 'Share screen'}
+                  aria-pressed={isScreenSharing}
+                >
+                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                </button>
+
+                <button
                   onClick={leaveRoom}
                   className="rounded-full bg-red-500 p-4 text-white hover:bg-red-600 transition-colors"
                   title="Disconnect"
@@ -180,6 +231,7 @@ export default function ActiveRoom({
           <p className="mt-4 text-center text-sm text-slate-400">
             {isMuted ? 'You are muted' : 'Your microphone is on'}
             {isDeafened && ' · You are deafened'}
+            {isScreenSharing && ' · Sharing screen'}
           </p>
         )}
       </Card>

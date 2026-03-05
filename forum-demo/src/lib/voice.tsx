@@ -53,6 +53,11 @@ interface VoiceContextType {
   connectError: string | null
   participants: VoiceParticipant[]
 
+  // Screen sharing
+  isScreenSharing: boolean
+  screenShareParticipant: { id: string; name: string } | null
+  screenShareTrack: MediaStreamTrack | null
+
   // Sidebar data — participant counts for all rooms
   roomParticipantCounts: Record<string, RoomParticipantInfo>
 
@@ -64,6 +69,7 @@ interface VoiceContextType {
   leaveRoom: () => void
   toggleMute: () => Promise<void>
   toggleDeafen: () => void
+  toggleScreenShare: () => Promise<void>
 }
 
 const VoiceContext = createContext<VoiceContextType | undefined>(undefined)
@@ -97,6 +103,9 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
   const [participants, setParticipants] = useState<VoiceParticipant[]>([])
   const [roomParticipantCounts, setRoomParticipantCounts] = useState<Record<string, RoomParticipantInfo>>({})
   const [avatarCache, setAvatarCache] = useState<Record<string, string | null>>({})
+  const [isScreenSharing, setIsScreenSharing] = useState(false)
+  const [screenShareParticipant, setScreenShareParticipant] = useState<{ id: string; name: string } | null>(null)
+  const [screenShareTrack, setScreenShareTrack] = useState<MediaStreamTrack | null>(null)
 
   // Ref to track connected room slug for use in callbacks without triggering re-renders
   const connectedRoomSlugRef = useRef<string | null>(null)
@@ -246,6 +255,9 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
     setIsMuted(false)
     setIsDeafened(false)
     setIsSpeaking(false)
+    setIsScreenSharing(false)
+    setScreenShareTrack(null)
+    setScreenShareParticipant(null)
     setConnectError(null)
     connectedRoomSlugRef.current = null
 
@@ -318,16 +330,46 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
       room.on(lk.RoomEvent.TrackUnmuted, updateParticipants)
       room.on(lk.RoomEvent.ActiveSpeakersChanged, updateParticipants)
 
-      // Attach remote audio tracks to DOM for playback
-      room.on(lk.RoomEvent.TrackSubscribed, (track) => {
+      // Attach remote audio tracks to DOM for playback + handle screen share
+      room.on(lk.RoomEvent.TrackSubscribed, (track, _pub, participant) => {
         if (track.kind === lk.Track.Kind.Audio) {
           const el = track.attach()
           el.id = `lk-audio-${track.sid}`
           document.body.appendChild(el)
         }
+        if (track.source === lk.Track.Source.ScreenShare && track.kind === lk.Track.Kind.Video) {
+          setScreenShareTrack(track.mediaStreamTrack)
+          setScreenShareParticipant({
+            id: participant.identity,
+            name: participant.name || participant.identity,
+          })
+        }
       })
       room.on(lk.RoomEvent.TrackUnsubscribed, (track) => {
+        if (track.source === lk.Track.Source.ScreenShare && track.kind === lk.Track.Kind.Video) {
+          setScreenShareTrack(null)
+          setScreenShareParticipant(null)
+        }
         track.detach().forEach(el => el.remove())
+      })
+
+      // Handle local screen share publish/unpublish (e.g. browser "Stop sharing" button)
+      room.on(lk.RoomEvent.LocalTrackPublished, (pub) => {
+        if (pub.track?.source === lk.Track.Source.ScreenShare && pub.track.kind === lk.Track.Kind.Video) {
+          setIsScreenSharing(true)
+          setScreenShareTrack(pub.track.mediaStreamTrack)
+          setScreenShareParticipant({
+            id: room.localParticipant.identity,
+            name: room.localParticipant.name || room.localParticipant.identity,
+          })
+        }
+      })
+      room.on(lk.RoomEvent.LocalTrackUnpublished, (pub) => {
+        if (pub.source === lk.Track.Source.ScreenShare) {
+          setIsScreenSharing(false)
+          setScreenShareTrack(null)
+          setScreenShareParticipant(null)
+        }
       })
 
       room.on(lk.RoomEvent.Disconnected, () => {
@@ -338,6 +380,9 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
         setIsMuted(false)
         setIsDeafened(false)
         setIsSpeaking(false)
+        setIsScreenSharing(false)
+        setScreenShareTrack(null)
+        setScreenShareParticipant(null)
         connectedRoomSlugRef.current = null
         livekitRoomRef.current = null
         deletePresence()
@@ -398,6 +443,17 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
       setIsMuted(true)
     }
   }, [isDeafened, isMuted])
+
+  const toggleScreenShare = useCallback(async () => {
+    const room = livekitRoomRef.current
+    if (!room) return
+    try {
+      await room.localParticipant.setScreenShareEnabled(!isScreenSharing)
+    } catch (err) {
+      // User cancelled the screen share picker — not an error
+      console.log('[FLD:Voice] Screen share toggle cancelled or failed:', err)
+    }
+  }, [isScreenSharing])
 
   // Subscribe to voice_presence changes via Supabase Realtime
   useEffect(() => {
@@ -475,12 +531,16 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
       connectedRoomName,
       connectError,
       participants,
+      isScreenSharing,
+      screenShareParticipant,
+      screenShareTrack,
       roomParticipantCounts,
       getAvatarUrl,
       joinRoom,
       leaveRoom,
       toggleMute,
       toggleDeafen,
+      toggleScreenShare,
     }}>
       {children}
     </VoiceContext.Provider>
