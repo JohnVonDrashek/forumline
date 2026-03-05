@@ -1,8 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import crypto from 'crypto'
 import { createClient } from '@supabase/supabase-js'
-import { getForumlineServer } from '../_lib/forumline-server.js'
-import { adaptRequest } from '../_lib/vercel-adapter.js'
+import { createOrLinkUser, afterAuth } from '../_lib/forumline-server.js'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const linkToken = req.query.link_token as string | undefined
@@ -107,9 +106,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.redirect(302, `${siteUrl}/login?error=auth_failed`)
       }
 
-      // Step 3: Create or link local user (reuse the ForumlineServer config)
-      const server = getForumlineServer()
-      const localUserId = await server.config.createOrLinkUser!(identity, hub_access_token || null)
+      // Step 3: Create or link local user
+      const localUserId = await createOrLinkUser(identity, hub_access_token || null)
 
       // Step 4: Set cookies and redirect
       const setCookies = [
@@ -122,16 +120,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       res.setHeader('Set-Cookie', setCookies)
 
       // Step 5: Call afterAuth hook for session generation
-      if (server.config.afterAuth) {
-        const redirectUrl = await server.config.afterAuth({
-          userId: localUserId,
-          identity,
-          hubAccessToken: hub_access_token || null,
-          request: adaptRequest(req),
-        })
-        if (redirectUrl) {
-          return res.redirect(302, redirectUrl)
-        }
+      const redirectUrl = await afterAuth({ userId: localUserId })
+      if (redirectUrl) {
+        return res.redirect(302, redirectUrl)
       }
 
       return res.redirect(302, `${siteUrl}/?forumline_auth=success`)
