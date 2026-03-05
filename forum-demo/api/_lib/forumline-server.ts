@@ -32,6 +32,8 @@ export function getForumlineServer(): ForumlineServer {
       clientSecret: process.env.FORUMLINE_CLIENT_SECRET!,
     },
 
+    hubJwtSecret: process.env.HUB_JWT_SECRET,
+
     async authenticateRequest(token: string): Promise<string | null> {
       const supabase = createClient(supabaseUrl, supabaseAnonKey)
       const { data: { user }, error } = await supabase.auth.getUser(token)

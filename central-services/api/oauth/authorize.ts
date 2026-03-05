@@ -4,11 +4,15 @@ import { getHubSupabase } from '../_lib/supabase.js'
 import { renderLoginPage } from '../_lib/templates/oauth-login.js'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  if (req.method !== 'GET') {
+  if (req.method !== 'GET' && req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
-  const { client_id, redirect_uri, state } = req.query as Record<string, string>
+  // Accept params from query string (GET) or request body (POST)
+  const params = req.method === 'POST'
+    ? { ...(req.query as Record<string, string>), ...(req.body as Record<string, string>) }
+    : req.query as Record<string, string>
+  const { client_id, redirect_uri, state } = params
 
   if (!client_id || !redirect_uri || !state) {
     return res.status(400).json({ error: 'client_id, redirect_uri, and state are required' })
@@ -41,9 +45,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const forumName = forum?.name || forum?.domain || 'a forum'
 
-  // Check if user is authenticated via Bearer token or access_token query param
+  // Check if user is authenticated via:
+  // 1. Bearer token in Authorization header
+  // 2. hub_pending_auth httpOnly cookie (set by login/signup endpoints)
+  // 3. access_token in POST body (for cross-origin forum redirects)
   const authHeader = req.headers.authorization
   let userId: string | null = null
+  let pendingAuthToken: string | undefined
 
   if (authHeader?.startsWith('Bearer ')) {
     const jwt = authHeader.slice(7)
@@ -56,14 +64,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (user) userId = user.id
   }
 
-  if (!userId && req.query.access_token) {
-    const { createClient } = await import('@supabase/supabase-js')
-    const anonClient = createClient(
-      process.env.HUB_SUPABASE_URL!,
-      process.env.HUB_SUPABASE_ANON_KEY!
-    )
-    const { data: { user } } = await anonClient.auth.getUser(req.query.access_token as string)
-    if (user) userId = user.id
+  if (!userId) {
+    // Read from httpOnly cookie (same-origin login/signup flow) or POST body (cross-origin forum flow)
+    pendingAuthToken = req.cookies?.hub_pending_auth
+      || (req.method === 'POST' && (req.body as Record<string, string>)?.access_token)
+      || undefined
+
+    if (pendingAuthToken) {
+      const { createClient } = await import('@supabase/supabase-js')
+      const anonClient = createClient(
+        process.env.HUB_SUPABASE_URL!,
+        process.env.HUB_SUPABASE_ANON_KEY!
+      )
+      const { data: { user } } = await anonClient.auth.getUser(pendingAuthToken)
+      if (user) userId = user.id
+    }
   }
 
   if (!userId) {
@@ -97,6 +112,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       { user_id: userId, forum_id: client.forum_id },
       { onConflict: 'user_id,forum_id' }
     )
+
+  // Clear the pending auth cookie if it was used
+  if (pendingAuthToken) {
+    res.setHeader('Set-Cookie', 'hub_pending_auth=; Path=/; HttpOnly; SameSite=Lax; Secure; Max-Age=0')
+  }
 
   const redirectUrl = new URL(redirect_uri)
   redirectUrl.searchParams.set('code', code)

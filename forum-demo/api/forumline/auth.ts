@@ -46,12 +46,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   authUrl.searchParams.set('redirect_uri', `${siteUrl}/api/forumline/auth/callback`)
   authUrl.searchParams.set('state', state)
 
-  // Pass hub_token if provided (user already authenticated on the hub)
+  res.setHeader('Set-Cookie', `forumline_state=${state}; Path=/; HttpOnly; SameSite=None; Secure; Max-Age=600`)
+
+  // If hub_token is provided, use a POST form to send it securely (keeps token out of URL)
   const hubToken = req.query.hub_token as string | undefined
   if (hubToken) {
-    authUrl.searchParams.set('access_token', hubToken)
+    const escapeAttr = (s: string) => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    const formHtml = `<!DOCTYPE html>
+<html><body>
+<form id="f" method="POST" action="${escapeAttr(authUrl.toString())}">
+<input type="hidden" name="access_token" value="${escapeAttr(hubToken)}">
+</form>
+<script>document.getElementById('f').submit()</script>
+</body></html>`
+    res.setHeader('Content-Type', 'text/html; charset=utf-8')
+    return res.status(200).send(formHtml)
   }
 
-  res.setHeader('Set-Cookie', `forumline_state=${state}; Path=/; HttpOnly; SameSite=None; Secure; Max-Age=600`)
   return res.redirect(302, authUrl.toString())
 }

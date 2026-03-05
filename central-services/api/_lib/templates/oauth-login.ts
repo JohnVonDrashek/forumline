@@ -220,7 +220,8 @@ export function renderLoginPage(params: {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Login failed');
-      window.location.href = AUTHORIZE_URL + '&access_token=' + encodeURIComponent(data.session.access_token);
+      // Token is set as httpOnly cookie by the login endpoint — redirect without it in URL
+      window.location.href = AUTHORIZE_URL;
     } catch (err) {
       showError(err.message);
       btn.disabled = false;
@@ -246,7 +247,8 @@ export function renderLoginPage(params: {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Signup failed');
-      window.location.href = AUTHORIZE_URL + '&access_token=' + encodeURIComponent(data.session.access_token);
+      // Token is set as httpOnly cookie by the signup endpoint — redirect without it in URL
+      window.location.href = AUTHORIZE_URL;
     } catch (err) {
       showError(err.message);
       btn.disabled = false;
