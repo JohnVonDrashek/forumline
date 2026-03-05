@@ -337,11 +337,24 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
       room.on(lk.RoomEvent.TrackUnmuted, updateParticipants)
       room.on(lk.RoomEvent.ActiveSpeakersChanged, updateParticipants)
 
-      // Attach remote audio tracks to DOM for playback + handle screen share
+      // Attach remote audio tracks to DOM for playback + handle screen share.
+      // Use Web Audio API to mix to mono — some browsers receive stereo streams
+      // with voice only on the left channel, causing one-ear playback.
       room.on(lk.RoomEvent.TrackSubscribed, (track, _pub, participant) => {
         if (track.kind === lk.Track.Kind.Audio) {
-          const el = track.attach()
+          const stream = new MediaStream([track.mediaStreamTrack])
+          const ctx = new AudioContext()
+          const source = ctx.createMediaStreamSource(stream)
+          const merger = ctx.createChannelMerger(2)
+          // Route the mono/left signal to both L and R channels
+          source.connect(merger, 0, 0)
+          source.connect(merger, 0, 1)
+          const dest = ctx.createMediaStreamDestination()
+          merger.connect(dest)
+          const el = new Audio()
           el.id = `lk-audio-${track.sid}`
+          el.srcObject = dest.stream
+          el.autoplay = true
           document.body.appendChild(el)
         }
         if (track.source === lk.Track.Source.ScreenShare && track.kind === lk.Track.Kind.Video) {
