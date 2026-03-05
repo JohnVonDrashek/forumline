@@ -110,6 +110,9 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
   // Ref to track connected room slug for use in callbacks without triggering re-renders
   const connectedRoomSlugRef = useRef<string | null>(null)
 
+  // Cache access token for synchronous use in beforeunload handler
+  const accessTokenRef = useRef<string | null>(null)
+
   // Cache of participant avatar URLs so we don't re-fetch every update
   const avatarCacheRef = useRef<Record<string, string | null>>({})
 
@@ -260,6 +263,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
     setScreenShareParticipant(null)
     setConnectError(null)
     connectedRoomSlugRef.current = null
+    accessTokenRef.current = null
 
     // Delete presence from Supabase
     deletePresence()
@@ -310,6 +314,9 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
       }
 
       const { token } = await resp.json()
+
+      // Cache for beforeunload cleanup
+      accessTokenRef.current = session.access_token
 
       const livekitUrl = import.meta.env.VITE_LIVEKIT_URL as string | undefined
       if (!livekitUrl) {
@@ -490,13 +497,13 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
       }
       // Note: Can't await deletePresence here, but Supabase will clean up stale records
       // We could use navigator.sendBeacon for a more reliable cleanup
-      if (user) {
+      if (user && accessTokenRef.current) {
         // Fire-and-forget delete via fetch with keepalive
         fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/voice_presence?user_id=eq.${user.id}`, {
           method: 'DELETE',
           headers: {
             'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            'Authorization': `Bearer ${accessTokenRef.current}`,
           },
           keepalive: true,
         }).catch(() => {})
