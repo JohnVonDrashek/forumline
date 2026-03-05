@@ -10,6 +10,10 @@ Do NOT use local dev server for testing. Use Playwright to interact with the pro
 
 ## Deployment
 
+Do NOT deploy npm packages manually. There are Github actions for that.
+
+Do NOT link 
+
 Both projects deploy via GitHub Actions on push to main. Do NOT deploy via Vercel CLI or Vercel dashboard.
 
 - **Forumline Demo** (demo.forumline.net): `.github/workflows/deploy-forum.yml` — triggers on `forum-demo/` or `packages/` changes
@@ -35,6 +39,8 @@ packages/
 ```
 
 npm workspaces are configured at root. Run `npm install` from root to link all packages.
+
+**CRITICAL — Do NOT remove `forum-demo` from npm workspaces or try to change the workspace/hoisting configuration.** Past attempts to fix Vercel deploy issues by removing forum-demo from workspaces, adding `file:` deps, changing `--install-strategy`, adding symlink scripts, etc. all failed and wasted hours. The current setup works. If Vercel serverless functions crash, the problem is almost certainly a runtime bug (e.g. malformed env vars, missing null checks), NOT a package resolution issue. Debug the actual error before touching workspaces.
 
 ### Package Details
 
