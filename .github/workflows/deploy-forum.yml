@@ -7,6 +7,7 @@ on:
     paths:
       - 'forum-demo/**'
       - 'packages/**'
+      - 'package-lock.json'
 
 jobs:
   deploy:
