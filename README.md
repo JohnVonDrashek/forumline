@@ -61,4 +61,4 @@ Both services deploy automatically via GitHub Actions on push to `main`:
 
 ## License
 
-MIT
+All rights reserved — Forumline is not yet ready for public use. An open-source license will be added when it is. See [LICENSE](LICENSE).
