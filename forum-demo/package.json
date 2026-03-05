@@ -16,7 +16,7 @@
     "community"
   ],
   "author": "",
-  "license": "MIT",
+  "license": "UNLICENSED",
   "dependencies": {
     "@johnvondrashek/forumline-central-services-client": "0.2.0",
     "@johnvondrashek/forumline-protocol": "0.3.2",
