@@ -9,7 +9,7 @@
     {
       "source": "/api/(.*)",
       "headers": [
-        { "key": "Access-Control-Allow-Origin", "value": "https://forum-chat-voice.vercel.app" },
+        { "key": "Access-Control-Allow-Origin", "value": "https://demo.forumline.net" },
         { "key": "Access-Control-Allow-Methods", "value": "GET, POST, OPTIONS" },
         { "key": "Access-Control-Allow-Headers", "value": "Authorization, Content-Type" },
         { "key": "Access-Control-Allow-Credentials", "value": "true" },

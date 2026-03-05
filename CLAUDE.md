@@ -1,8 +1,10 @@
-# Forumline Demo
+# Forumline
 
 ## Testing
 
-**Always test through production**: https://forum-chat-voice.vercel.app
+**Always test through production**: 
+Forumline: https://app.forumline.net 
+Demo: https://demo.forumline.net
 
 Do NOT use local dev server for testing. Use Playwright to interact with the production site.
 
@@ -10,8 +12,8 @@ Do NOT use local dev server for testing. Use Playwright to interact with the pro
 
 Both projects deploy via GitHub Actions on push to main. Do NOT deploy via Vercel CLI or Vercel dashboard.
 
-- **Forumline Demo** (forum-chat-voice.vercel.app): `.github/workflows/deploy-forum.yml` — triggers on `forum-demo/` or `packages/` changes
-- **Forumline Central Services** (forumline-hub.vercel.app): `.github/workflows/deploy-hub.yml` — triggers only on `central-services/` changes
+- **Forumline Demo** (demo.forumline.net): `.github/workflows/deploy-forum.yml` — triggers on `forum-demo/` or `packages/` changes
+- **Forumline Central Services** (app.forumline.net): `.github/workflows/deploy-hub.yml` — triggers only on `central-services/` changes
 
 Both use the `VERCEL_TOKEN` GitHub secret.
 

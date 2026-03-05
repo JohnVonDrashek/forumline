@@ -13,14 +13,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const { data: { user }, error } = await sb.auth.getUser(linkToken)
 
     if (error || !user) {
-      const siteUrl = process.env.VITE_SITE_URL || 'https://forum-chat-voice.vercel.app'
+      const siteUrl = process.env.VITE_SITE_URL || 'https://demo.forumline.net'
       return res.redirect(302, `${siteUrl}/settings?error=invalid_session`)
     }
 
     // Build the hub authorize URL manually (same as SDK) so we can set both cookies
     const hubUrl = process.env.FORUMLINE_HUB_URL!
     const clientId = process.env.FORUMLINE_CLIENT_ID!
-    const siteUrl = process.env.VITE_SITE_URL || 'https://forum-chat-voice.vercel.app'
+    const siteUrl = process.env.VITE_SITE_URL || 'https://demo.forumline.net'
     const state = crypto.randomBytes(16).toString('hex')
 
     const authUrl = new URL(`${hubUrl}/api/oauth/authorize`)
@@ -38,7 +38,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Normal sign-in flow — inline the redirect with SameSite=None for iframe compat
   const hubUrl = process.env.FORUMLINE_HUB_URL!
   const clientId = process.env.FORUMLINE_CLIENT_ID!
-  const siteUrl = process.env.VITE_SITE_URL || 'https://forum-chat-voice.vercel.app'
+  const siteUrl = process.env.VITE_SITE_URL || 'https://demo.forumline.net'
   const state = crypto.randomBytes(16).toString('hex')
 
   const authUrl = new URL(`${hubUrl}/api/oauth/authorize`)

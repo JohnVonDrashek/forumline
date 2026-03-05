@@ -36,7 +36,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     'Connection': 'keep-alive',
   })
 
-  const forumDomain = 'forum-chat-voice.vercel.app'
+  const forumDomain = 'demo.forumline.net'
 
   const channel = supabase
     .channel(`forumline-notif-${user.id}`)

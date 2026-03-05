@@ -4,7 +4,7 @@ This app is deployed on **Vercel** with **Supabase** as the backend.
 
 ## Production URLs
 
-- **Frontend**: https://forum-chat-voice.vercel.app
+- **Frontend**: https://demo.forumline.net
 - **Database**: Supabase PostgreSQL
 - **Voice**: LiveKit Cloud
 
@@ -45,7 +45,7 @@ Set via CLI or Vercel Dashboard:
 |----------|-------------|
 | `VITE_SUPABASE_URL` | Your Supabase project URL |
 | `VITE_SUPABASE_ANON_KEY` | Supabase anonymous/public key |
-| `VITE_SITE_URL` | Production URL (`https://forum-chat-voice.vercel.app`) |
+| `VITE_SITE_URL` | Production URL (`https://demo.forumline.net`) |
 | `LIVEKIT_URL` | LiveKit server URL (wss://...) |
 | `LIVEKIT_API_KEY` | LiveKit API key |
 | `LIVEKIT_API_SECRET` | LiveKit API secret |
@@ -103,10 +103,10 @@ cd forum-demo && vercel env pull .env.local --token "$VERCEL_TOKEN"
 
 Configure in Supabase Dashboard > Authentication > URL Configuration:
 
-- **Site URL**: `https://forum-chat-voice.vercel.app`
+- **Site URL**: `https://demo.forumline.net`
 - **Redirect URLs**:
-  - `https://forum-chat-voice.vercel.app`
-  - `https://forum-chat-voice.vercel.app/reset-password`
+  - `https://demo.forumline.net`
+  - `https://demo.forumline.net/reset-password`
   - `http://localhost:3000` (for local dev)
   - `http://localhost:3000/reset-password` (for local dev)
 

@@ -1,6 +1,6 @@
 {
   "name": "@johnvondrashek/forumline-react",
-  "version": "0.2.9",
+  "version": "0.3.0",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -15,7 +15,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/JohnVonDrashek/forum-chat-voice.git",
+    "url": "https://github.com/JohnVonDrashek/forumline.git",
     "directory": "packages/react"
   },
   "publishConfig": {

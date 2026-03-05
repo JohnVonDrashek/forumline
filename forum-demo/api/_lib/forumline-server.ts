@@ -2,7 +2,7 @@ import { ForumlineServer, ForumlineSupabaseAdapter } from '@johnvondrashek/forum
 import type { ForumlineIdentity, ForumNotification } from '@johnvondrashek/forumline-protocol'
 import { createClient } from '@supabase/supabase-js'
 
-const DOMAIN = 'forum-chat-voice.vercel.app'
+const DOMAIN = 'demo.forumline.net'
 
 let _server: ForumlineServer | null = null
 

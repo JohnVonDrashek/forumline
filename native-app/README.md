@@ -1,6 +1,6 @@
 # Forumline Desktop App
 
-Thin [Tauri v2](https://tauri.app/) shell that wraps the Forumline hub web app (`forumline-hub.vercel.app`) in a native window with system tray, notifications, autostart, and deep link support.
+Thin [Tauri v2](https://tauri.app/) shell that wraps the Forumline hub web app (`app.forumline.net`) in a native window with system tray, notifications, autostart, and deep link support.
 
 ## Prerequisites
 
@@ -44,7 +44,7 @@ desktop/
 
 **Key points:**
 
-- **No bundled frontend** — `frontendDist` points to `https://forumline-hub.vercel.app`. The desktop app loads the production hub directly.
+- **No bundled frontend** — `frontendDist` points to `https://app.forumline.net`. The desktop app loads the production hub directly.
 - **System tray** — Close minimizes to tray instead of quitting. Tray menu has Show/Quit.
 - **Plugins** — `notification`, `autostart`, `shell`, `deep-link` are all Tauri v2 plugins configured in `Cargo.toml` and `capabilities/default.json`.
 - **Deep links** — Registers `forumline://` protocol. URLs like `forumline://forum/{domain}/t/{threadId}` open the app and navigate to the target forum/thread.

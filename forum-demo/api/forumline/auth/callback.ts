@@ -4,7 +4,7 @@ import { parseCookies } from '@johnvondrashek/forumline-server-sdk'
 import { getForumlineServer } from '../../_lib/forumline-server.js'
 import { adaptRequest, adaptResponse } from '../../_lib/vercel-adapter.js'
 
-const siteUrl = process.env.VITE_SITE_URL || 'https://forum-chat-voice.vercel.app'
+const siteUrl = process.env.VITE_SITE_URL || 'https://demo.forumline.net'
 
 /**
  * Handle account linking flow (user clicked "Connect to Forumline" from Settings).
