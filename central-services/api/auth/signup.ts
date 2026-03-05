@@ -78,14 +78,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(500).json({ error: 'Failed to create profile' })
   }
 
+  // Set short-lived httpOnly cookie so the authorize endpoint can read it
+  // without the token ever appearing in a URL
+  res.setHeader('Set-Cookie',
+    `hub_pending_auth=${data.session.access_token}; Path=/; HttpOnly; SameSite=Lax; Secure; Max-Age=60`
+  )
+
   return res.status(201).json({
     user: {
       id: data.user.id,
       email: data.user.email,
     },
     session: {
-      access_token: data.session.access_token,
-      refresh_token: data.session.refresh_token,
       expires_at: new Date((data.session.expires_at ?? 0) * 1000).toISOString(),
     },
   })

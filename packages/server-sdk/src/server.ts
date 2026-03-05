@@ -217,12 +217,23 @@ export class ForumlineServer {
       authorizeUrl.searchParams.set('redirect_uri', redirectUri)
       authorizeUrl.searchParams.set('state', state)
 
-      // Pass access_token if provided (for users already authenticated on the hub)
+      res.setHeader('Set-Cookie', `forumline_state=${state}; Path=/; HttpOnly; SameSite=None; Secure; Max-Age=600`)
+
+      // If hub_token is provided, use a POST form to send it securely (keeps token out of URL)
       if (req.query.hub_token) {
-        authorizeUrl.searchParams.set('access_token', req.query.hub_token as string)
+        const escapeAttr = (s: string) => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        const formHtml = `<!DOCTYPE html>
+<html><body>
+<form id="f" method="POST" action="${escapeAttr(authorizeUrl.toString())}">
+<input type="hidden" name="access_token" value="${escapeAttr(req.query.hub_token as string)}">
+</form>
+<script>document.getElementById('f').submit()</script>
+</body></html>`
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' })
+        res.write(formHtml)
+        return res.end()
       }
 
-      res.setHeader('Set-Cookie', `forumline_state=${state}; Path=/; HttpOnly; SameSite=None; Secure; Max-Age=600`)
       return res.redirect(302, authorizeUrl.toString())
     }
   }
