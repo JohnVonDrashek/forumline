@@ -2,7 +2,7 @@
 
 A modern community platform combining threaded forums, real-time chat, and voice rooms — with cross-forum federation via a central identity service.
 
-**Live demo**: [forum-chat-voice.vercel.app](https://forum-chat-voice.vercel.app)
+**Live demo**: [demo.forumline.net](https://demo.forumline.net)
 
 ## Why
 

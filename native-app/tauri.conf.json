@@ -2,9 +2,9 @@
   "$schema": "node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "Forumline",
   "version": "0.1.0",
-  "identifier": "com.forumchatvoice.app",
+  "identifier": "net.forumline.app",
   "build": {
-    "frontendDist": "https://forumline-hub.vercel.app",
+    "frontendDist": "https://app.forumline.net",
     "devUrl": "http://localhost:5173"
   },
   "app": {
@@ -20,7 +20,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self' https://forumline-hub.vercel.app https://forum-chat-voice.vercel.app https://*.supabase.co wss://*.supabase.co https://*.livekit.cloud wss://*.livekit.cloud; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' https: wss:; font-src 'self' data:; frame-src 'self' https://forum-chat-voice.vercel.app https://forumline-hub.vercel.app"
+      "csp": "default-src 'self' https://app.forumline.net https://demo.forumline.net https://*.supabase.co wss://*.supabase.co https://*.livekit.cloud wss://*.livekit.cloud; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' https: wss:; font-src 'self' data:; frame-src 'self' https://demo.forumline.net https://app.forumline.net"
     }
   },
   "bundle": {

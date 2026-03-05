@@ -32,7 +32,7 @@ const NotFound = lazy(() => import('./pages/NotFound'))
 
 const HUB_SUPABASE_URL = import.meta.env.VITE_HUB_SUPABASE_URL as string
 const HUB_SUPABASE_ANON_KEY = import.meta.env.VITE_HUB_SUPABASE_ANON_KEY as string
-const HUB_URL = (import.meta.env.VITE_HUB_URL as string) || 'https://forumline-hub.vercel.app'
+const HUB_URL = (import.meta.env.VITE_HUB_URL as string) || 'https://app.forumline.net'
 
 function PageFallback() {
   return (

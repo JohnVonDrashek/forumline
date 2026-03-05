@@ -10,8 +10,8 @@
         { "key": "X-Content-Type-Options", "value": "nosniff" },
         { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
         { "key": "Strict-Transport-Security", "value": "max-age=31536000; includeSubDomains" },
-        { "key": "Content-Security-Policy", "value": "frame-ancestors 'self' https://forumline-hub.vercel.app" },
-        { "key": "Permissions-Policy", "value": "microphone=(self \"https://forumline-hub.vercel.app\"), display-capture=(self \"https://forumline-hub.vercel.app\")" }
+        { "key": "Content-Security-Policy", "value": "frame-ancestors 'self' https://app.forumline.net" },
+        { "key": "Permissions-Policy", "value": "microphone=(self \"https://app.forumline.net\"), display-capture=(self \"https://app.forumline.net\")" }
       ]
     }
   ]

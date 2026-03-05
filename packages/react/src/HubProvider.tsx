@@ -29,7 +29,7 @@ interface HubProviderProps {
   hubSupabaseUrl: string
   /** Supabase anon key for the hub project. */
   hubSupabaseAnonKey: string
-  /** Base URL of the hub API (e.g. 'https://forumline-hub.vercel.app'). */
+  /** Base URL of the hub API (e.g. 'https://app.forumline.net'). */
   hubUrl: string
   /** Endpoint to fetch the hub access token. Defaults to '/api/forumline/auth/hub-token'. */
   hubTokenEndpoint?: string
