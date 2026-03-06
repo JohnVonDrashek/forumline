@@ -1,0 +1,47 @@
+package forum
+
+import (
+	"encoding/json"
+	"net/http"
+
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/johnvondrashek/forumline/go-services/internal/shared"
+)
+
+// Handlers holds dependencies for all forum API handlers.
+type Handlers struct {
+	Pool   *pgxpool.Pool
+	SSEHub *shared.SSEHub
+	Config *Config
+}
+
+// Config holds environment-driven configuration for the forum server.
+type Config struct {
+	GoTrueURL            string
+	ServiceRoleKey       string
+	SiteURL              string
+	Domain               string
+	HubURL               string
+	HubClientID          string
+	HubClientSecret      string
+	HubJWTSecret         string
+	HubSupabaseURL       string
+	HubServiceRoleKey    string
+	LiveKitURL           string
+	LiveKitAPIKey        string
+	LiveKitAPISecret     string
+}
+
+func writeJSON(w http.ResponseWriter, status int, v interface{}) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	json.NewEncoder(w).Encode(v)
+}
+
+func parseCookies(r *http.Request) map[string]string {
+	cookies := make(map[string]string)
+	for _, c := range r.Cookies() {
+		cookies[c.Name] = c.Value
+	}
+	return cookies
+}
