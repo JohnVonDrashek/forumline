@@ -2,10 +2,17 @@ package shared
 
 import (
 	"context"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
+	"math/big"
 	"net/http"
 	"os"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 )
@@ -20,20 +27,18 @@ type Claims struct {
 	Email string `json:"email"`
 }
 
-// ValidateJWT verifies a GoTrue-issued JWT and returns the claims.
-func ValidateJWT(tokenStr string) (*Claims, error) {
-	secret := os.Getenv("JWT_SECRET")
-	if secret == "" {
-		return nil, fmt.Errorf("JWT_SECRET is not set")
-	}
+// jwksCache caches the JWKS public keys fetched from GoTrue.
+var (
+	jwksMu     sync.RWMutex
+	jwksKeys   map[string]*ecdsa.PublicKey
+	jwksFetched time.Time
+)
 
+// ValidateJWT verifies a GoTrue-issued JWT and returns the claims.
+// Supports both HMAC (standalone GoTrue) and ES256 (Supabase hosted).
+func ValidateJWT(tokenStr string) (*Claims, error) {
 	claims := &Claims{}
-	token, err := jwt.ParseWithClaims(tokenStr, claims, func(t *jwt.Token) (interface{}, error) {
-		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
-		}
-		return []byte(secret), nil
-	})
+	token, err := jwt.ParseWithClaims(tokenStr, claims, keyFunc)
 	if err != nil {
 		return nil, fmt.Errorf("parse token: %w", err)
 	}
@@ -42,6 +47,105 @@ func ValidateJWT(tokenStr string) (*Claims, error) {
 	}
 
 	return claims, nil
+}
+
+func keyFunc(t *jwt.Token) (interface{}, error) {
+	switch t.Method.(type) {
+	case *jwt.SigningMethodHMAC:
+		secret := os.Getenv("JWT_SECRET")
+		if secret == "" {
+			return nil, fmt.Errorf("JWT_SECRET is not set")
+		}
+		return []byte(secret), nil
+
+	case *jwt.SigningMethodECDSA:
+		kid, _ := t.Header["kid"].(string)
+		key, err := getECDSAKey(kid)
+		if err != nil {
+			return nil, err
+		}
+		return key, nil
+
+	default:
+		return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
+	}
+}
+
+// getECDSAKey returns the ECDSA public key for the given kid from the JWKS cache.
+func getECDSAKey(kid string) (*ecdsa.PublicKey, error) {
+	jwksMu.RLock()
+	if jwksKeys != nil && time.Since(jwksFetched) < 10*time.Minute {
+		if key, ok := jwksKeys[kid]; ok {
+			jwksMu.RUnlock()
+			return key, nil
+		}
+	}
+	jwksMu.RUnlock()
+
+	// Fetch JWKS
+	if err := fetchJWKS(); err != nil {
+		return nil, fmt.Errorf("fetch JWKS: %w", err)
+	}
+
+	jwksMu.RLock()
+	defer jwksMu.RUnlock()
+	if key, ok := jwksKeys[kid]; ok {
+		return key, nil
+	}
+	return nil, fmt.Errorf("unknown key ID: %s", kid)
+}
+
+func fetchJWKS() error {
+	gotrueURL := os.Getenv("GOTRUE_URL")
+	if gotrueURL == "" {
+		return fmt.Errorf("GOTRUE_URL is not set")
+	}
+
+	resp, err := http.Get(gotrueURL + "/.well-known/jwks.json")
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	var jwksResp struct {
+		Keys []struct {
+			Kid string `json:"kid"`
+			Kty string `json:"kty"`
+			Crv string `json:"crv"`
+			X   string `json:"x"`
+			Y   string `json:"y"`
+		} `json:"keys"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&jwksResp); err != nil {
+		return err
+	}
+
+	keys := make(map[string]*ecdsa.PublicKey)
+	for _, k := range jwksResp.Keys {
+		if k.Kty != "EC" || k.Crv != "P-256" {
+			continue
+		}
+		xBytes, err := base64.RawURLEncoding.DecodeString(k.X)
+		if err != nil {
+			continue
+		}
+		yBytes, err := base64.RawURLEncoding.DecodeString(k.Y)
+		if err != nil {
+			continue
+		}
+		keys[k.Kid] = &ecdsa.PublicKey{
+			Curve: elliptic.P256(),
+			X:     new(big.Int).SetBytes(xBytes),
+			Y:     new(big.Int).SetBytes(yBytes),
+		}
+	}
+
+	jwksMu.Lock()
+	jwksKeys = keys
+	jwksFetched = time.Now()
+	jwksMu.Unlock()
+
+	return nil
 }
 
 // AuthMiddleware extracts and validates the JWT from the Authorization header
