@@ -17,9 +17,9 @@ Do NOT deploy npm packages manually. There are Github actions for that.
 
 Do NOT link 
 
-Both projects deploy via GitHub Actions on push to main. Do NOT deploy via Vercel CLI, Vercel dashboard, or `flyctl deploy` manually.
+Both projects deploy via GitHub Actions on push to main. Do NOT deploy via `flyctl deploy` manually.
 
-- **Forumline Demo** (demo.forumline.net): `.github/workflows/deploy-forum.yml` — triggers on `forum-demo/` or `packages/` changes
+- **Forumline Demo** (demo.forumline.net): `.github/workflows/deploy-forum.yml` — triggers on `go-services/` or `packages/` changes
 - **Forumline Central Services** (app.forumline.net): `.github/workflows/deploy-hub.yml` — triggers on `central-services/` or `packages/` changes
 
 Both deploy to Fly.io using Docker. The `FLY_API_TOKEN` GitHub secret is required.
@@ -33,12 +33,13 @@ Do NOT ignore bugs that you see even if they are unrelated to your changes. Jot 
 ```
 forum-demo/        — Forumline Demo web app (Vite + React)
 central-services/  — Forumline Central Services (identity service)
+go-services/       — Go API servers (forum + hub)
 native-app/        — Tauri native app (desktop, iOS, Android)
 packages/
-  protocol/                  — @forumline/protocol (federation types)
-  server-sdk/                — @forumline/server-sdk (protocol endpoint handlers)
-  central-services-client/   — @forumline/central-services-client (headless hub API client)
-  react/                     — @forumline/react (React providers, components, hooks)
+  protocol/                  — @johnvondrashek/forumline-protocol (federation types)
+  server-sdk/                — @johnvondrashek/forumline-server-sdk (protocol endpoint handlers)
+  central-services-client/   — @johnvondrashek/forumline-central-services-client (headless hub API client)
+  react/                     — @johnvondrashek/forumline-react (React providers, components, hooks)
 ```
 
 npm workspaces are configured at root. Run `npm install` from root to link all packages.
@@ -47,19 +48,18 @@ npm workspaces are configured at root. Run `npm install` from root to link all p
 
 ### Package Details
 
-- **@forumline/protocol** — Zero-dependency TypeScript types for the federation contract
-- **@forumline/server-sdk** — Framework-agnostic handler factories (auth, notifications, unread) with `ForumlineServer` class
-- **@forumline/central-services-client** — Headless HTTP client for cross-forum DMs (conversations, messages, profiles)
-- **@forumline/react** — `ForumProvider`, `HubProvider`, `ForumRail`, `ForumWebview`, `useNativeNotifications`, `isTauri` utilities
+- **@johnvondrashek/forumline-protocol** — Zero-dependency TypeScript types for the federation contract
+- **@johnvondrashek/forumline-server-sdk** — Framework-agnostic handler factories (auth, notifications, unread) with `ForumlineServer` class
+- **@johnvondrashek/forumline-central-services-client** — Headless HTTP client for cross-forum DMs (conversations, messages, profiles)
+- **@johnvondrashek/forumline-react** — `ForumProvider`, `HubProvider`, `ForumRail`, `ForumWebview`, `useNativeNotifications`, `isTauri` utilities
 
 ## Fly.io
 
-Both apps run as Docker containers on Fly.io. Each app has a Hono HTTP server (`server/index.ts`) that wraps existing Vercel-style API handlers via the `vercel-compat.ts` adapter.
+Both apps run as Docker containers on Fly.io with Go API servers (`go-services/cmd/forum/` and `go-services/cmd/hub/`).
 
-- Dockerfiles at repo root: `Dockerfile.forum-demo`, `Dockerfile.central-services`
+- Dockerfiles at repo root: `Dockerfile.forum-demo`, `Dockerfile.go-hub`
 - Fly config: `forum-demo/fly.toml`, `central-services/fly.toml`
-- Local dev: `docker compose up --build` or `npm run dev:server` in each app directory
-- Server build: `npm run build:server` (uses esbuild)
+- Local dev: `docker compose up --build` (Postgres + GoTrue) + `go run ./cmd/forum/` or `go run ./cmd/hub/` in `go-services/`
 
 ## Stack
 
@@ -70,5 +70,4 @@ Both apps run as Docker containers on Fly.io. Each app has a Hono HTTP server (`
 - Cloudflare R2 (avatar/image storage)
 - SSE realtime via Postgres LISTEN/NOTIFY
 - LiveKit (voice rooms)
-- Hono HTTP server + Docker on Fly.io
-- Supabase used only by Central Services (hub) — forum has no Supabase dependency
+- Docker on Fly.io
