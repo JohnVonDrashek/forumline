@@ -104,6 +104,7 @@ export function createApp(root: HTMLElement) {
   renderLoading()
 
   const { data: { subscription } } = hubSupabase.auth.onAuthStateChange((event, session) => {
+    console.log(`[Hub:Auth] event=${event}, hasRenderedApp=${hasRenderedApp}, hasSession=${!!session}`)
     currentSession = session
     if (event === 'PASSWORD_RECOVERY') {
       passwordRecovery = true
