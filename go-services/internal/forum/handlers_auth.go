@@ -113,7 +113,10 @@ func (h *Handlers) HandleSignup(w http.ResponseWriter, r *http.Request) {
 		},
 	})
 
-	signupResp, err := http.Post(gotrueURL+"/signup", "application/json", bytes.NewReader(payload))
+	signupReq, _ := http.NewRequestWithContext(ctx, http.MethodPost, gotrueURL+"/signup", bytes.NewReader(payload))
+	signupReq.Header.Set("Content-Type", "application/json")
+	signupReq.Header.Set("apikey", serviceKey)
+	signupResp, err := http.DefaultClient.Do(signupReq)
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "auth service unavailable"})
 		return
@@ -123,7 +126,18 @@ func (h *Handlers) HandleSignup(w http.ResponseWriter, r *http.Request) {
 	signupBody, _ := io.ReadAll(signupResp.Body)
 
 	if signupResp.StatusCode != 200 {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "Signup failed"})
+		var gotrueErr struct {
+			ErrorDescription string `json:"error_description"`
+			Msg              string `json:"msg"`
+		}
+		json.Unmarshal(signupBody, &gotrueErr)
+		errMsg := "Signup failed"
+		if gotrueErr.ErrorDescription != "" {
+			errMsg = gotrueErr.ErrorDescription
+		} else if gotrueErr.Msg != "" {
+			errMsg = gotrueErr.Msg
+		}
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": errMsg})
 		return
 	}
 
@@ -238,12 +252,15 @@ func gotrueAdminGenerateLink(gotrueURL, serviceKey, email string) (hashedToken s
 }
 
 // gotrueVerifyOTP verifies an OTP hash and returns session tokens.
-func gotrueVerifyOTP(gotrueURL, tokenHash string) (accessToken, refreshToken string, err error) {
+func gotrueVerifyOTP(gotrueURL, serviceKey, tokenHash string) (accessToken, refreshToken string, err error) {
 	payload, _ := json.Marshal(map[string]string{
 		"token_hash": tokenHash,
 		"type":       "magiclink",
 	})
-	resp, err := http.Post(gotrueURL+"/verify", "application/json", bytes.NewReader(payload))
+	req, _ := http.NewRequest(http.MethodPost, gotrueURL+"/verify", bytes.NewReader(payload))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("apikey", serviceKey)
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return "", "", fmt.Errorf("verify OTP request failed: %w", err)
 	}
@@ -356,7 +373,7 @@ func (h *Handlers) afterAuth(userID string) string {
 		return ""
 	}
 
-	accessToken, refreshToken, err := gotrueVerifyOTP(h.Config.GoTrueURL, hashedToken)
+	accessToken, refreshToken, err := gotrueVerifyOTP(h.Config.GoTrueURL, h.Config.ServiceRoleKey, hashedToken)
 	if err != nil {
 		return ""
 	}
