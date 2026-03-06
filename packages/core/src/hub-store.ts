@@ -62,6 +62,11 @@ export function createHubStore(options: HubStoreOptions): HubStore {
         global: {
           headers: { Authorization: `Bearer ${token}` },
         },
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false,
+          storageKey: 'forumline-hub-store',
+        },
       })
 
       store.set({

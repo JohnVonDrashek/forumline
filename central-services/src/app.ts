@@ -58,6 +58,7 @@ export function createApp(root: HTMLElement) {
   }
 
   function renderApp(session: Session) {
+    console.log('[Hub:App] renderApp called, event stack:', new Error().stack?.split('\n').slice(1, 4).join(' <- '))
     cleanup()
     root.innerHTML = ''
 
