@@ -2,11 +2,14 @@
 
 ## Testing
 
-**Always test through production**: 
+**Use Docker for backend testing**
+When possible, make sure to spin up a docker container locally for testing. This allows for faster iteration and safer git commits.
+
+**For testing in production**: 
 Forumline: https://app.forumline.net 
 Demo: https://demo.forumline.net
 
-Do NOT use local dev server for testing. Use Playwright to interact with the production site.
+Use Playwright to interact with the production site.
 
 ## Deployment
 
