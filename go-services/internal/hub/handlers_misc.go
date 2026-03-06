@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -32,6 +33,7 @@ func (h *Handlers) HandleGetMemberships(w http.ResponseWriter, r *http.Request) 
 		 ORDER BY m.joined_at DESC`, userID,
 	)
 	if err != nil {
+		log.Printf("[Memberships] HandleGetMemberships query error: %v", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "Failed to fetch memberships"})
 		return
 	}
