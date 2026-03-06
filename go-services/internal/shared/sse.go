@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -34,37 +35,56 @@ func NewSSEHub(pool *pgxpool.Pool) *SSEHub {
 }
 
 // Listen starts a goroutine that listens on the given Postgres channel
-// and fans out notifications to registered clients.
+// and fans out notifications to registered clients. Automatically reconnects
+// on connection failure.
 func (h *SSEHub) Listen(ctx context.Context, channel string) {
 	go func() {
-		conn, err := h.pool.Acquire(ctx)
-		if err != nil {
-			log.Printf("SSEHub: failed to acquire connection for LISTEN %s: %v", channel, err)
-			return
-		}
-		defer conn.Release()
-
-		_, err = conn.Exec(ctx, fmt.Sprintf("LISTEN %s", channel))
-		if err != nil {
-			log.Printf("SSEHub: LISTEN %s failed: %v", channel, err)
-			return
-		}
-
-		log.Printf("SSEHub: listening on channel %s", channel)
-
 		for {
-			notification, err := conn.Conn().WaitForNotification(ctx)
-			if err != nil {
-				if ctx.Err() != nil {
-					return // context cancelled, clean shutdown
-				}
-				log.Printf("SSEHub: WaitForNotification error on %s: %v", channel, err)
+			if ctx.Err() != nil {
 				return
 			}
-
-			h.broadcast(channel, []byte(notification.Payload))
+			h.listenOnce(ctx, channel)
+			if ctx.Err() != nil {
+				return
+			}
+			log.Printf("SSEHub: reconnecting to channel %s in 3s...", channel)
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(3 * time.Second):
+			}
 		}
 	}()
+}
+
+func (h *SSEHub) listenOnce(ctx context.Context, channel string) {
+	conn, err := h.pool.Acquire(ctx)
+	if err != nil {
+		log.Printf("SSEHub: failed to acquire connection for LISTEN %s: %v", channel, err)
+		return
+	}
+	defer conn.Release()
+
+	_, err = conn.Exec(ctx, fmt.Sprintf("LISTEN %s", channel))
+	if err != nil {
+		log.Printf("SSEHub: LISTEN %s failed: %v", channel, err)
+		return
+	}
+
+	log.Printf("SSEHub: listening on channel %s", channel)
+
+	for {
+		notification, err := conn.Conn().WaitForNotification(ctx)
+		if err != nil {
+			if ctx.Err() != nil {
+				return // context cancelled, clean shutdown
+			}
+			log.Printf("SSEHub: WaitForNotification error on %s: %v", channel, err)
+			return
+		}
+
+		h.broadcast(channel, []byte(notification.Payload))
+	}
 }
 
 // broadcast sends a payload to all clients listening on the given channel,

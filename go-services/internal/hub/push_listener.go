@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/johnvondrashek/forumline/go-services/internal/shared"
@@ -22,6 +23,24 @@ func NewPushListener(pool *pgxpool.Pool, sseHub *shared.SSEHub) *PushListener {
 }
 
 func (pl *PushListener) Start(ctx context.Context) {
+	for {
+		if ctx.Err() != nil {
+			return
+		}
+		pl.listenOnce(ctx)
+		if ctx.Err() != nil {
+			return
+		}
+		log.Println("PushListener: reconnecting in 3s...")
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(3 * time.Second):
+		}
+	}
+}
+
+func (pl *PushListener) listenOnce(ctx context.Context) {
 	conn, err := pl.Pool.Acquire(ctx)
 	if err != nil {
 		log.Printf("PushListener: failed to acquire connection: %v", err)

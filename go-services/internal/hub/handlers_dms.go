@@ -2,6 +2,7 @@ package hub
 
 import (
 	"encoding/json"
+	"log"
 	"math"
 	"net/http"
 	"strconv"
@@ -42,6 +43,7 @@ func (h *Handlers) HandleListConversations(w http.ResponseWriter, r *http.Reques
 		 LIMIT 500`, userID,
 	)
 	if err != nil {
+		log.Printf("[DMs] HandleListConversations query error: %v", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "Failed to fetch conversations"})
 		return
 	}

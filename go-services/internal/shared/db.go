@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -18,6 +19,14 @@ func NewDBPool(ctx context.Context) (*pgxpool.Pool, error) {
 	if err != nil {
 		return nil, fmt.Errorf("parse DATABASE_URL: %w", err)
 	}
+
+	// Keep minimum connections alive to avoid cold-start latency
+	config.MinConns = 2
+	// Recycle connections before Fly's proxy can kill them
+	config.MaxConnLifetime = 10 * time.Minute
+	config.MaxConnIdleTime = 2 * time.Minute
+	// Frequent health checks to detect dead connections quickly
+	config.HealthCheckPeriod = 15 * time.Second
 
 	pool, err := pgxpool.NewWithConfig(ctx, config)
 	if err != nil {
