@@ -98,24 +98,33 @@ export function createApp(root: HTMLElement) {
 
   let currentSession: Session | null = null
   let passwordRecovery = false
+  let hasRenderedApp = false
 
   renderLoading()
-
-  hubSupabase.auth.getSession().then(({ data: { session } }) => {
-    currentSession = session
-    renderForSession(session)
-  })
 
   const { data: { subscription } } = hubSupabase.auth.onAuthStateChange((event, session) => {
     currentSession = session
     if (event === 'PASSWORD_RECOVERY') {
       passwordRecovery = true
       renderForSession(session)
+      hasRenderedApp = !!session
     } else if (event === 'TOKEN_REFRESHED') {
       // Token refresh doesn't need to re-create the app layout — the supabase
       // client handles token management internally. Re-rendering would destroy
       // the webview iframe and cause fetch failures in pending callbacks.
+    } else if (event === 'INITIAL_SESSION') {
+      renderForSession(session)
+      hasRenderedApp = !!session
+    } else if (event === 'SIGNED_IN') {
+      // Only re-render on SIGNED_IN if we haven't already rendered the app
+      // (INITIAL_SESSION with a valid session already rendered it)
+      if (!hasRenderedApp) {
+        renderForSession(session)
+        hasRenderedApp = !!session
+      }
     } else {
+      // SIGNED_OUT or other events
+      hasRenderedApp = false
       renderForSession(session)
     }
   })
