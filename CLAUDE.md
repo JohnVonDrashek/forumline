@@ -5,69 +5,70 @@
 **Use Docker for backend testing**
 When possible, make sure to spin up a docker container locally for testing. This allows for faster iteration and safer git commits.
 
-**For testing in production**: 
-Forumline: https://app.forumline.net 
+**For testing in production**:
+Forumline: https://app.forumline.net
 Demo: https://demo.forumline.net
 
 Use Playwright to interact with the production site.
 
+Run forum Playwright tests against production:
+```bash
+cd forum-vanilla && PLAYWRIGHT_BASE_URL=https://demo.forumline.net npx playwright test
+```
+
+Do NOT ignore bugs that you see even if they are unrelated to your changes. Jot them down and present them to the user at the conclusion of testing as potential next steps to fix.
+
 ## Deployment
 
-Do NOT deploy npm packages manually. There are Github actions for that.
+Do NOT deploy npm packages manually. There are GitHub Actions for that.
 
-Do NOT link 
+Both projects deploy via GitHub Actions on push to main. Do NOT deploy manually.
 
-Both projects deploy via GitHub Actions on push to main. Do NOT deploy via `flyctl deploy` manually.
+- **Forumline Demo** (demo.forumline.net): `.github/workflows/deploy-forum.yml` — triggers on `go-services/` or `forum-vanilla/` changes
+- **Forumline Central Services** (app.forumline.net): `.github/workflows/deploy-hub.yml` — triggers on `go-services/`, `central-services/`, or `packages/` changes
 
-- **Forumline Demo** (demo.forumline.net): `.github/workflows/deploy-forum.yml` — triggers on `go-services/` or `packages/` changes
-- **Forumline Central Services** (app.forumline.net): `.github/workflows/deploy-hub.yml` — triggers on `central-services/` or `packages/` changes
-
-Both deploy to Fly.io using Docker. The `FLY_API_TOKEN` GitHub secret is required.
-
-## Testing
-
-Do NOT ignore bugs that you see even if they are unrelated to your changes. Jot them down and present them to the user at the conclusion of testing as potentional next steps to fix.
+Both deploy via SSH through Cloudflare Tunnel to self-hosted Proxmox LXCs running Docker Compose. The `FORUM_SSH_KEY` GitHub secret is required.
 
 ## Monorepo Structure
 
 ```
-forum-demo/        — Forumline Demo web app (Vite + React)
-central-services/  — Forumline Central Services (identity service)
+forum-vanilla/     — Forumline Demo web app (Vite + vanilla JS)
+central-services/  — Forumline Central Services / Hub (Vite + React)
 go-services/       — Go API servers (forum + hub)
 native-app/        — Tauri native app (desktop, iOS, Android)
 packages/
   protocol/                  — @johnvondrashek/forumline-protocol (federation types)
   server-sdk/                — @johnvondrashek/forumline-server-sdk (protocol endpoint handlers)
   central-services-client/   — @johnvondrashek/forumline-central-services-client (headless hub API client)
-  react/                     — @johnvondrashek/forumline-react (React providers, components, hooks)
+  core/                      — @johnvondrashek/forumline-core (shared utilities)
 ```
 
 npm workspaces are configured at root. Run `npm install` from root to link all packages.
-
-**CRITICAL — Do NOT remove `forum-demo` from npm workspaces or try to change the workspace/hoisting configuration.**
 
 ### Package Details
 
 - **@johnvondrashek/forumline-protocol** — Zero-dependency TypeScript types for the federation contract
 - **@johnvondrashek/forumline-server-sdk** — Framework-agnostic handler factories (auth, notifications, unread) with `ForumlineServer` class
 - **@johnvondrashek/forumline-central-services-client** — Headless HTTP client for cross-forum DMs (conversations, messages, profiles)
-- **@johnvondrashek/forumline-react** — `ForumProvider`, `HubProvider`, `ForumRail`, `ForumWebview`, `useNativeNotifications`, `isTauri` utilities
+- **@johnvondrashek/forumline-core** — Shared utilities
 
-## Fly.io
+## Infrastructure
 
-Both apps run as Docker containers on Fly.io with Go API servers (`go-services/cmd/forum/` and `go-services/cmd/hub/`).
+Both apps are self-hosted on Proxmox LXCs with Docker Compose, exposed to the internet via Cloudflare Tunnel.
 
-- Dockerfiles at repo root: `Dockerfile.forum-demo`, `Dockerfile.go-hub`
-- Fly config: `forum-demo/fly.toml`, `central-services/fly.toml`
-- Local dev: `docker compose up --build` (Postgres + GoTrue) + `go run ./cmd/forum/` or `go run ./cmd/hub/` in `go-services/`
+- **Forum LXC** (CT 100, `forum-prod`, 192.168.1.23): Postgres + GoTrue + Go forum server
+- **Hub LXC** (CT 101, `hub-prod`, 192.168.1.99): Postgres + GoTrue + Go hub server
+- Dockerfiles at repo root: `Dockerfile.go-forum`, `Dockerfile.go-hub`
+- Local dev: `cd go-services && docker compose up -d` (Postgres + GoTrue) + `go run ./cmd/forum/` or `go run ./cmd/hub/`
 
 ## Stack
 
-- React 19 + Vite + TailwindCSS
+- Vanilla JS + Vite + TailwindCSS (forum frontend)
+- React 19 + Vite + TailwindCSS (hub frontend)
 - Go API server (Chi router) for forum data + auth proxy
-- Fly Postgres (forum database)
-- GoTrue (self-hosted auth on Fly.io)
+- Self-hosted Postgres 17 (forum + hub databases)
+- GoTrue v2.186.0 (self-hosted auth)
 - Cloudflare R2 (avatar/image storage)
 - SSE realtime via Postgres LISTEN/NOTIFY
 - LiveKit (voice rooms)
-- Docker on Fly.io
+- Cloudflare Tunnel + Docker Compose on Proxmox
