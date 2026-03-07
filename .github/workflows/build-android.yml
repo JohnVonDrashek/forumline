@@ -51,7 +51,7 @@ jobs:
           NDK_HOME: ${{ env.ANDROID_HOME }}/ndk/27.0.12077973
 
       - name: Upload Android artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: forumline-android
           path: desktop-and-mobile-tauri-apps/gen/android/app/build/outputs/
