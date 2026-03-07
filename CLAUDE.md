@@ -38,7 +38,7 @@ Do NOT deploy packages manually. There are GitHub Actions for that.
 Both projects deploy via GitHub Actions on push to main. Do NOT deploy manually.
 
 - **Forumline Demo** (demo.forumline.net): `.github/workflows/deploy-forum.yml` — triggers on `go-services/` or `examples/forum-a/` changes
-- **Forumline App** (app.forumline.net): `.github/workflows/deploy-hub.yml` — triggers on `go-services/`, `central-services/`, or `packages/` changes
+- **Forumline App** (app.forumline.net): `.github/workflows/deploy-forumline.yml` — triggers on `go-services/`, `central-services/`, or `packages/` changes
 
 Both deploy via SSH through Cloudflare Tunnel to self-hosted Proxmox LXCs running Docker Compose. The `FORUM_SSH_KEY` GitHub secret is required.
 
