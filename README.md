@@ -3,6 +3,7 @@
 A modern community platform combining threaded forums, real-time chat, and voice rooms — with cross-forum federation via a central identity service.
 
 **Live demo**: [demo.forumline.net](https://demo.forumline.net)
+**Hub**: [app.forumline.net](https://app.forumline.net)
 
 ## Why
 
@@ -10,24 +11,27 @@ Traditional forums lack real-time interaction. Chat apps lack structure. Forumli
 
 ## Stack
 
-- **Frontend** — React 19, Vite, TailwindCSS
-- **Forum Backend** — Go API server, Fly Postgres, GoTrue (self-hosted auth), Cloudflare R2 (avatars), SSE realtime
-- **Hub Backend** — Supabase (auth, Postgres, realtime)
+- **Forum Frontend** — Vanilla JS, Vite, TailwindCSS
+- **Hub Frontend** — React 19, Vite, TailwindCSS
+- **Backend** — Go API servers (Chi router), Postgres 17, GoTrue (self-hosted auth)
+- **Realtime** — SSE via Postgres LISTEN/NOTIFY
 - **Voice** — LiveKit
-- **Native** — Tauri (desktop, iOS, Android)
-- **Deploy** — Fly.io + Docker + GitHub Actions
+- **Storage** — Cloudflare R2 (avatars/images)
+- **Native** — Tauri v2 (desktop, iOS, Android)
+- **Deploy** — Self-hosted Proxmox LXCs, Docker Compose, Cloudflare Tunnel, GitHub Actions
 
 ## Monorepo Layout
 
 | Directory | Description |
 |-----------|-------------|
-| `forum-demo/` | Forum web app (Vite + React) |
-| `central-services/` | Identity & federation registry service |
+| `forum-vanilla/` | Forum web app (Vite + vanilla JS) |
+| `central-services/` | Hub web app — identity & federation registry (Vite + React) |
+| `go-services/` | Go API servers for forum (`cmd/forum/`) and hub (`cmd/hub/`) |
 | `native-app/` | Tauri native app shell |
 | `packages/protocol/` | Federation types (zero-dependency) |
 | `packages/server-sdk/` | Protocol endpoint handler factories |
 | `packages/central-services-client/` | Headless hub API client |
-| `packages/react/` | Providers, components, and hooks |
+| `packages/core/` | Shared utilities |
 
 ## Quick Start
 
@@ -35,10 +39,19 @@ Traditional forums lack real-time interaction. Chat apps lack structure. Forumli
 # Install (links workspace packages)
 npm install
 
-# Run the forum
-cd forum-demo && npm run dev
+# Start local Postgres + GoTrue
+cd go-services && docker compose up -d
 
-# Run central services
+# Run the forum backend
+cd go-services && go run ./cmd/forum/
+
+# Run the forum frontend
+cd forum-vanilla && npm run dev
+
+# Run the hub backend
+cd go-services && go run ./cmd/hub/
+
+# Run the hub frontend
 cd central-services && npm run dev
 ```
 
@@ -47,18 +60,18 @@ Both apps require a `.env.local` — see `.env.example` in each directory.
 ## Scripts
 
 ```bash
-npm run build:packages   # Build all packages in dependency order
-npm run tauri:dev         # Run native desktop app
-npm run lint              # ESLint
-npm run format            # Prettier
+npm run build          # Build all packages (via Turbo)
+npm run dev:hub        # Run central services dev server
+npm run lint           # ESLint
+npm run format         # Prettier
 ```
 
 ## Deployment
 
-Both services deploy automatically via GitHub Actions on push to `main`:
+Both services are self-hosted on Proxmox LXCs with Docker Compose, exposed via Cloudflare Tunnel. Deploys are triggered automatically via GitHub Actions on push to `main`:
 
-- **Forum** → `forum-demo/**` changes trigger [deploy-forum.yml](.github/workflows/deploy-forum.yml)
-- **Central Services** → `central-services/**` changes trigger [deploy-hub.yml](.github/workflows/deploy-hub.yml)
+- **Forum** → `go-services/**` or `forum-vanilla/**` changes trigger [deploy-forum.yml](.github/workflows/deploy-forum.yml)
+- **Hub** → `go-services/**`, `central-services/**`, or `packages/**` changes trigger [deploy-hub.yml](.github/workflows/deploy-hub.yml)
 
 ## License
 
