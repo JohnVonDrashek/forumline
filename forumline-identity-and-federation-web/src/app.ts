@@ -113,6 +113,7 @@ export function createApp(root: HTMLElement) {
     } else {
       // SIGNED_OUT or other events
       hasRenderedApp = false
+      forumStore.clear()
       renderForSession(session)
     }
   })
