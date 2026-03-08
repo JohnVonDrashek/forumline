@@ -66,8 +66,7 @@ func (c *SiteCache) Put(slug, path string, data []byte, contentType, etag string
 	}
 
 	// Remove old entry if exists
-	if old, exists := c.items[key]; exists {
-		c.curSize -= int64(len(old.data))
+	if _, exists := c.items[key]; exists {
 		c.removeLocked(key)
 	}
 
