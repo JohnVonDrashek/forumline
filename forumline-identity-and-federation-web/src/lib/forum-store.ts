@@ -29,6 +29,7 @@ export interface ForumStore extends Store<ForumState> {
   removeForum: (domain: string) => void
   setUnreadCounts: (domain: string, counts: UnreadCounts) => void
   syncFromServer: (accessToken: string) => Promise<void>
+  clear: () => void
 }
 
 // ============================================================================
@@ -210,6 +211,13 @@ export function createForumStore(): ForumStore {
       }))
     },
 
+    clear() {
+      lsSaveForums([])
+      lsSetActiveDomain(null)
+      _accessToken = null
+      store.set({ forums: [], activeForum: null, unreadCounts: {} })
+    },
+
     async syncFromServer(accessToken: string) {
       setAccessToken(accessToken)
       try {
@@ -227,44 +235,21 @@ export function createForumStore(): ForumStore {
           joined_at: string
         }[] = await res.json()
 
-        if (!memberships.length) return
+        // Server is the source of truth — replace local state entirely
+        const forums: ForumMembership[] = memberships.map(m => ({
+          domain: m.forum_domain,
+          name: m.forum_name,
+          icon_url: m.forum_icon_url || '',
+          web_base: m.web_base,
+          api_base: m.api_base,
+          capabilities: m.capabilities || [],
+          added_at: m.joined_at,
+        }))
 
-        // Merge server memberships with local state
-        // Server is authoritative — add any missing, keep local extras until they sync
-        const localForums = store.get().forums
-        const localByDomain = new Map(localForums.map(f => [f.domain, f]))
-        const serverDomains = new Set(memberships.map(m => m.forum_domain))
-
-        const merged: ForumMembership[] = []
-
-        // Add all server memberships
-        for (const m of memberships) {
-          const local = localByDomain.get(m.forum_domain)
-          merged.push({
-            domain: m.forum_domain,
-            name: local?.name || m.forum_name,
-            icon_url: local?.icon_url || m.forum_icon_url || '',
-            web_base: local?.web_base || m.web_base,
-            api_base: local?.api_base || m.api_base,
-            capabilities: local?.capabilities || m.capabilities || [],
-            accent_color: local?.accent_color,
-            added_at: local?.added_at || m.joined_at,
-          })
-        }
-
-        // Also sync any local-only forums to the server
-        for (const local of localForums) {
-          if (!serverDomains.has(local.domain)) {
-            // Forum exists locally but not on server — sync it up
-            serverJoinForum(local.domain)
-            merged.push(local)
-          }
-        }
-
-        lsSaveForums(merged)
+        lsSaveForums(forums)
         const activeDomain = lsGetActiveDomain()
-        const activeForum = activeDomain ? merged.find(f => f.domain === activeDomain) ?? null : null
-        store.set(prev => ({ ...prev, forums: merged, activeForum }))
+        const activeForum = activeDomain ? forums.find(f => f.domain === activeDomain) ?? null : null
+        store.set(prev => ({ ...prev, forums, activeForum }))
       } catch { /* non-critical */ }
     },
   }
