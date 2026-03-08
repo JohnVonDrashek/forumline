@@ -208,13 +208,27 @@ jobs:
             CODE_SIGNING_REQUIRED = NO;
           ' "$PBXPROJ"
 
-      - name: Build iOS (simulator)
-        run: cargo tauri ios build
+      - name: Build Rust library for iOS simulator
+        run: cargo build --release --target aarch64-apple-ios-sim --lib
+        working-directory: desktop-and-mobile-tauri-apps
+
+      - name: Build iOS app (simulator, no export)
+        run: |
+          xcodebuild build \
+            -project gen/apple/forumline-demo.xcodeproj \
+            -scheme forumline-demo_iOS \
+            -configuration release \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO
         working-directory: desktop-and-mobile-tauri-apps
 
       - name: Package iOS build
         run: |
-          APP_DIR=$(find desktop-and-mobile-tauri-apps/gen/apple/build -name "*.app" -type d 2>/dev/null | head -1)
+          APP_DIR=$(find desktop-and-mobile-tauri-apps/build -name "*.app" -type d 2>/dev/null | head -1)
           if [ -n "$APP_DIR" ]; then
             cd "$(dirname "$APP_DIR")"
             zip -r "$GITHUB_WORKSPACE/Forumline-nightly-ios-simulator.zip" "$(basename "$APP_DIR")"
