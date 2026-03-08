@@ -202,19 +202,25 @@ export function createDmMessageView({ forumlineStore, conversationId }: DmMessag
     }
   }
 
-  async function fetchMessages() {
+  async function fetchConversationInfo() {
     const { forumlineClient } = forumlineStore.get()
     if (!forumlineClient) return
-
     try {
-      // Fetch conversation info
       const convo = await forumlineClient.getConversation(conversationId)
       if (convo) {
         conversation = convo
         updateHeader()
       }
+    } catch (err) {
+      console.error('[Forumline:DM] Failed to fetch conversation:', err)
+    }
+  }
 
-      // Fetch messages
+  async function fetchMessages() {
+    const { forumlineClient } = forumlineStore.get()
+    if (!forumlineClient) return
+
+    try {
       messages = await forumlineClient.getMessages(conversationId)
       renderMessages()
 
@@ -275,17 +281,21 @@ export function createDmMessageView({ forumlineStore, conversationId }: DmMessag
   spinnerWrap.appendChild(createSpinner())
   messagesContainer.appendChild(spinnerWrap)
 
+  fetchConversationInfo()
   fetchMessages()
 
-  // SSE for real-time updates via shared connection (filtered to this conversation)
+  // SSE for real-time updates via shared connection (filtered to this conversation, debounced)
+  let sseDebounce: ReturnType<typeof setTimeout> | null = null
   const unsubSSE = subscribeDmEvents((event) => {
     if (event.conversation_id && event.conversation_id !== conversationId) return
-    fetchMessages()
+    if (sseDebounce) clearTimeout(sseDebounce)
+    sseDebounce = setTimeout(fetchMessages, 200)
   })
 
   return {
     el,
     destroy() {
+      if (sseDebounce) clearTimeout(sseDebounce)
       unsubSSE()
     },
   }
