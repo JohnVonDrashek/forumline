@@ -1,6 +1,7 @@
 package platform
 
 import (
+	"bytes"
 	"context"
 	"crypto/md5"
 	"encoding/hex"
@@ -176,7 +177,7 @@ func (sh *SiteHandlers) saveManifest(ctx context.Context, client *minio.Client, 
 	if err != nil {
 		return err
 	}
-	_, err = client.PutObject(ctx, sh.R2Bucket, r2MetaKey(slug), strings.NewReader(string(data)), int64(len(data)), minio.PutObjectOptions{
+	_, err = client.PutObject(ctx, sh.R2Bucket, r2MetaKey(slug), bytes.NewReader(data), int64(len(data)), minio.PutObjectOptions{
 		ContentType: "application/json",
 	})
 	return err
@@ -355,7 +356,7 @@ func (sh *SiteHandlers) HandlePutFile(w http.ResponseWriter, r *http.Request) {
 	etag := hex.EncodeToString(hash[:])
 
 	// Upload to R2
-	_, err = client.PutObject(r.Context(), sh.R2Bucket, r2Key(slug, filePath), strings.NewReader(string(data)), newSize, minio.PutObjectOptions{
+	_, err = client.PutObject(r.Context(), sh.R2Bucket, r2Key(slug, filePath), bytes.NewReader(data), newSize, minio.PutObjectOptions{
 		ContentType: contentType,
 	})
 	if err != nil {
@@ -534,7 +535,7 @@ func (sh *SiteHandlers) HandleMultipartUpload(w http.ResponseWriter, r *http.Req
 				contentType = "application/octet-stream"
 			}
 
-			_, err = client.PutObject(r.Context(), sh.R2Bucket, r2Key(slug, filePath), strings.NewReader(string(data)), int64(len(data)), minio.PutObjectOptions{
+			_, err = client.PutObject(r.Context(), sh.R2Bucket, r2Key(slug, filePath), bytes.NewReader(data), int64(len(data)), minio.PutObjectOptions{
 				ContentType: contentType,
 			})
 			if err != nil {

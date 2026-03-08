@@ -216,9 +216,22 @@ func spaHandler(apiHandler http.Handler, store *plat.TenantStore, cache *plat.Si
 	fileServer := http.FileServer(http.Dir(distDir))
 
 	r2AccountID := os.Getenv("R2_ACCOUNT_ID")
-	r2KeyID := os.Getenv("R2_ACCESS_KEY_ID")
-	r2Secret := os.Getenv("R2_SECRET_ACCESS_KEY")
 	r2Bucket := os.Getenv("R2_BUCKET_NAME")
+
+	// Create a shared minio client for serving custom sites (reused across requests)
+	var r2Client *minio.Client
+	if r2AccountID != "" {
+		endpoint := fmt.Sprintf("%s.r2.cloudflarestorage.com", r2AccountID)
+		c, err := minio.New(endpoint, &minio.Options{
+			Creds:  credentials.NewStaticV4(os.Getenv("R2_ACCESS_KEY_ID"), os.Getenv("R2_SECRET_ACCESS_KEY"), ""),
+			Secure: true,
+		})
+		if err != nil {
+			log.Printf("warning: failed to create R2 client for custom site serving: %v", err)
+		} else {
+			r2Client = c
+		}
+	}
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if strings.HasPrefix(r.URL.Path, "/api/") || strings.HasPrefix(r.URL.Path, "/auth/") || strings.HasPrefix(r.URL.Path, "/.well-known/") {
@@ -236,7 +249,11 @@ func spaHandler(apiHandler http.Handler, store *plat.TenantStore, cache *plat.Si
 
 		// Custom site path: serve from R2 with caching
 		if tenant.HasCustomSite {
-			serveCustomSite(w, r, tenant, cache, r2AccountID, r2KeyID, r2Secret, r2Bucket)
+			if r2Client == nil {
+				http.Error(w, "Storage not configured", http.StatusInternalServerError)
+				return
+			}
+			serveCustomSite(w, r, tenant, cache, r2Client, r2Bucket)
 			return
 		}
 
@@ -263,7 +280,7 @@ func spaHandler(apiHandler http.Handler, store *plat.TenantStore, cache *plat.Si
 // serveCustomSite serves files from R2 for tenants with custom frontends.
 // Uses the manifest to determine which files exist, and falls back to
 // serving index.html for SPA-style routing (paths without extensions).
-func serveCustomSite(w http.ResponseWriter, r *http.Request, tenant *plat.Tenant, cache *plat.SiteCache, r2AccountID, r2KeyID, r2Secret, r2Bucket string) {
+func serveCustomSite(w http.ResponseWriter, r *http.Request, tenant *plat.Tenant, cache *plat.SiteCache, client *minio.Client, r2Bucket string) {
 	reqPath := strings.TrimPrefix(r.URL.Path, "/")
 	if reqPath == "" {
 		reqPath = "index.html"
@@ -287,16 +304,6 @@ func serveCustomSite(w http.ResponseWriter, r *http.Request, tenant *plat.Tenant
 	}
 
 	// Cache miss: fetch from R2
-	endpoint := fmt.Sprintf("%s.r2.cloudflarestorage.com", r2AccountID)
-	client, err := minio.New(endpoint, &minio.Options{
-		Creds:  credentials.NewStaticV4(r2KeyID, r2Secret, ""),
-		Secure: true,
-	})
-	if err != nil {
-		http.Error(w, "Storage unavailable", http.StatusInternalServerError)
-		return
-	}
-
 	key := fmt.Sprintf("sites/%s/files/%s", tenant.Slug, reqPath)
 	obj, err := client.GetObject(r.Context(), r2Bucket, key, minio.GetObjectOptions{})
 	if err != nil {
