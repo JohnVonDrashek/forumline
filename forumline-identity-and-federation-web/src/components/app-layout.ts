@@ -93,11 +93,14 @@ export function createAppLayout({ forumlineSession, forumStore, forumlineStore, 
     // Initial fetch
     fetchDmCount()
 
-    // SSE-driven updates — shared connection, no extra EventSource
+    // SSE-driven updates — shared connection, debounced
+    let sseDebounce: ReturnType<typeof setTimeout> | null = null
     const unsubSSE = subscribeDmEvents(() => {
-      fetchDmCount()
+      if (sseDebounce) clearTimeout(sseDebounce)
+      sseDebounce = setTimeout(fetchDmCount, 300)
     })
     cleanups.push(unsubSSE)
+    cleanups.push(() => { if (sseDebounce) clearTimeout(sseDebounce) })
 
     // Refresh badge when a conversation is marked as read
     const onDmRead = () => fetchDmCount()

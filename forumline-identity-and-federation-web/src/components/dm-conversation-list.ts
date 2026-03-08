@@ -275,9 +275,11 @@ export function createDmConversationList({ forumlineStore, onSelectConversation 
   // Initial fetch
   fetchAndRender()
 
-  // SSE for real-time updates via shared connection
+  // SSE for real-time updates via shared connection (debounced to coalesce rapid events)
+  let sseDebounce: ReturnType<typeof setTimeout> | null = null
   const unsubSSE = subscribeDmEvents(() => {
-    fetchAndRender()
+    if (sseDebounce) clearTimeout(sseDebounce)
+    sseDebounce = setTimeout(fetchAndRender, 200)
   })
 
   // Fallback poll (in case SSE drops without error)
@@ -287,6 +289,7 @@ export function createDmConversationList({ forumlineStore, onSelectConversation 
     el,
     destroy() {
       if (pollInterval) clearInterval(pollInterval)
+      if (sseDebounce) clearTimeout(sseDebounce)
       unsubSSE()
     },
   }
