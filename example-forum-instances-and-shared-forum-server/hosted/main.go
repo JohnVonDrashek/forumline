@@ -106,6 +106,7 @@ func main() {
 	r.Get("/api/platform/forums/{slug}/export", platformHandlers.HandleExport)
 
 	// Site management API (custom frontend files)
+	r.Get("/api/platform/owned-sites", siteHandlers.HandleOwnedSites)
 	r.Get("/api/platform/sites/{slug}/files", siteHandlers.HandleListFiles)
 	r.Get("/api/platform/sites/{slug}/files/*", siteHandlers.HandleGetFile)
 	r.Put("/api/platform/sites/{slug}/files/*", siteHandlers.HandlePutFile)

@@ -102,6 +102,11 @@ export function createSiteManager({ slug, forumName, domain, auth, onClose }: Si
     render()
     try {
       const res = await fetch(apiUrl('/files'), { headers: authHeaders() })
+      if (res.status === 403) {
+        showToast('You don\'t have permission to edit this site', 'error')
+        onClose()
+        return
+      }
       if (!res.ok) throw new Error(await res.text())
       manifest = await res.json()
     } catch (err) {
