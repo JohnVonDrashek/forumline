@@ -6,6 +6,7 @@ COPY example-forum-instances-and-shared-forum-server/go.mod example-forum-instan
 RUN go mod download
 
 COPY example-forum-instances-and-shared-forum-server/shared/ shared/
+COPY example-forum-instances-and-shared-forum-server/platform/ platform/
 COPY example-forum-instances-and-shared-forum-server/forum/ forum/
 COPY example-forum-instances-and-shared-forum-server/forum-b/main.go forum-b/main.go
 RUN CGO_ENABLED=0 GOOS=linux go build -o /app/bin/forum ./forum-b/
