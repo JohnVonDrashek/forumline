@@ -97,6 +97,30 @@ func (sh *SiteHandlers) authenticateOwner(r *http.Request, slug string) (*Tenant
 	return tenant, nil
 }
 
+// HandleOwnedSites returns the domains and slugs of forums owned by the caller.
+func (sh *SiteHandlers) HandleOwnedSites(w http.ResponseWriter, r *http.Request) {
+	forumlineID := r.Header.Get("X-Forumline-ID")
+	if forumlineID == "" {
+		http.Error(w, "authentication required", http.StatusUnauthorized)
+		return
+	}
+	type ownedSite struct {
+		Domain string `json:"domain"`
+		Slug   string `json:"slug"`
+	}
+	var sites []ownedSite
+	for _, t := range sh.Store.All() {
+		if t.OwnerForumlineID == forumlineID {
+			sites = append(sites, ownedSite{Domain: t.Domain, Slug: t.Slug})
+		}
+	}
+	if sites == nil {
+		sites = []ownedSite{}
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(sites)
+}
+
 // extractSlugAndPath parses /api/platform/sites/{slug}/files/{path...} or similar.
 func extractSlugAndPath(urlPath, prefix string) (slug, filePath string, ok bool) {
 	trimmed := strings.TrimPrefix(urlPath, prefix)

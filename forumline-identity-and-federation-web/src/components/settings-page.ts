@@ -17,6 +17,7 @@ export function createSettingsPage({ forumlineSession, forumStore, forumlineStor
   let removingDomain: string | null = null
   let avatarUrl: string | null = null
   let siteManagerChild: { el: HTMLElement; destroy: () => void } | null = null
+  let ownedSites: Map<string, string> = new Map() // domain -> slug
 
   const el = document.createElement('div')
   el.className = 'page-scroll'
@@ -46,8 +47,8 @@ export function createSettingsPage({ forumlineSession, forumStore, forumlineStor
   el.appendChild(settingsWrapper)
 
   function openSiteManager(forum: { name: string; domain: string }) {
-    // Extract slug from domain (e.g. "myforum.forumline.net" -> "myforum")
-    const slug = forum.domain.split('.')[0]
+    const slug = ownedSites.get(forum.domain)
+    if (!slug) return
     settingsWrapper.style.display = 'none'
     siteManagerChild?.destroy()
     siteManagerChild = createSiteManager({
@@ -183,8 +184,8 @@ export function createSettingsPage({ forumlineSession, forumStore, forumlineStor
     info.append(name, domain)
     row.appendChild(info)
 
-    // Edit Site button (only for hosted forums)
-    if (forum.domain.endsWith('.forumline.net')) {
+    // Edit Site button (only for forums the user owns on the hosted platform)
+    if (ownedSites.has(forum.domain)) {
       row.appendChild(createButton({
         text: 'Edit Site',
         variant: 'ghost',
@@ -268,6 +269,30 @@ export function createSettingsPage({ forumlineSession, forumStore, forumlineStor
     } catch { /* non-critical */ }
   }
 
+  async function fetchOwnedSites() {
+    try {
+      const session = auth.getSession()
+      if (!session) return
+      const res = await fetch('https://forumline.net/api/platform/owned-sites', {
+        headers: { 'X-Forumline-ID': session.user.id },
+      })
+      if (!res.ok) return
+      const sites: { domain: string; slug: string }[] = await res.json()
+      ownedSites = new Map(sites.map(s => [s.domain, s.slug]))
+      // Re-render forum list to show/hide Edit Site buttons
+      rebuildForumRows()
+    } catch { /* non-critical */ }
+  }
+
+  function rebuildForumRows() {
+    // Clear and rebuild all forum rows so Edit Site buttons reflect ownership
+    for (const [, entry] of forumRows) {
+      entry.row.remove()
+    }
+    forumRows.clear()
+    renderForumList()
+  }
+
   async function fetchAvatar() {
     const userId = forumlineSession?.user?.id
     if (!userId) return
@@ -346,6 +371,7 @@ export function createSettingsPage({ forumlineSession, forumStore, forumlineStor
   renderForumList()
   fetchMemberships()
   fetchAvatar()
+  fetchOwnedSites()
 
   return {
     el,
