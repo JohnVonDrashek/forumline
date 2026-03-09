@@ -10,7 +10,6 @@
 		05ED978BFF1EF5AE55308751 /* VoIPPushManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A31391BD5F4CE15A4A63746 /* VoIPPushManager.swift */; };
 		2E9D61C64B26F23F637B321C /* WebViewContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD31590D64D1D09935D2262B /* WebViewContainer.swift */; };
 		4C19ACF66897D8CCE8784EC1 /* CallManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C687857E0AB17D140EE3C140 /* CallManager.swift */; };
-		5850811413AF3B89ABFDCB8E /* DeepLinkHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFF8795C9743C0F6E752F2C6 /* DeepLinkHandler.swift */; };
 		5A5C2BCEC188657B83AABCB1 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5765FA6421468806A52802F8 /* AppDelegate.swift */; };
 		997F7A77B506F0B7CEA74414 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1E3D3622CB485057F7A31FB3 /* Assets.xcassets */; };
 		9BF0D7CECF57BCC4DD7E3D62 /* ForumlineApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6C70F2FA44A477C9CEAEA1B /* ForumlineApp.swift */; };
@@ -30,7 +29,6 @@
 		C687857E0AB17D140EE3C140 /* CallManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallManager.swift; sourceTree = "<group>"; };
 		E7D64B69644F5F20DEFA9C24 /* WebViewBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebViewBridge.swift; sourceTree = "<group>"; };
 		FD662048B12D28F26244081C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
-		FFF8795C9743C0F6E752F2C6 /* DeepLinkHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeepLinkHandler.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -56,7 +54,6 @@
 				5765FA6421468806A52802F8 /* AppDelegate.swift */,
 				1E3D3622CB485057F7A31FB3 /* Assets.xcassets */,
 				C687857E0AB17D140EE3C140 /* CallManager.swift */,
-				FFF8795C9743C0F6E752F2C6 /* DeepLinkHandler.swift */,
 				B5A20F6746D90B41C11BADD1 /* Forumline.entitlements */,
 				A6C70F2FA44A477C9CEAEA1B /* ForumlineApp.swift */,
 				FD662048B12D28F26244081C /* Info.plist */,
@@ -140,7 +137,6 @@
 			files = (
 				5A5C2BCEC188657B83AABCB1 /* AppDelegate.swift in Sources */,
 				4C19ACF66897D8CCE8784EC1 /* CallManager.swift in Sources */,
-				5850811413AF3B89ABFDCB8E /* DeepLinkHandler.swift in Sources */,
 				9BF0D7CECF57BCC4DD7E3D62 /* ForumlineApp.swift in Sources */,
 				9F6F732970BFA148D209280C /* PushManager.swift in Sources */,
 				05ED978BFF1EF5AE55308751 /* VoIPPushManager.swift in Sources */,

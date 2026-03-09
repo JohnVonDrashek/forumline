@@ -10,19 +10,6 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         // triggered by the web app via the JS bridge (auth-state message).
         // This avoids prompting before the user has even signed in.
 
-        // Check for deep link commands passed as launch arguments
-        // Usage: xcrun simctl launch ... net.forumline.app "forumline://login?email=...&password=..."
-        let args = ProcessInfo.processInfo.arguments
-        for arg in args.dropFirst() { // skip executable path
-            if arg.hasPrefix("forumline://"), let url = URL(string: arg) {
-                // Delay to let the webview load first
-                DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                    DeepLinkHandler.shared.handle(url: url)
-                }
-                break
-            }
-        }
-
         return true
     }
 
