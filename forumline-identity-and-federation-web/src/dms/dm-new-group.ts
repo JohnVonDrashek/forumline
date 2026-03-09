@@ -14,9 +14,9 @@
  * - Create the group conversation on the server and navigate to it on success
  * - Show a loading state on the create button while the request is in progress
  */
-import type { ForumlineStore } from '../lib/index.js'
+import type { ForumlineStore } from '../shared/forumline-store.js'
 import type { ForumlineProfile } from '@johnvondrashek/forumline-protocol'
-import { createAvatar, createButton, createInput, createSpinner } from './ui.js'
+import { createAvatar, createButton, createInput, createSpinner } from '../shared/ui.js'
 
 interface DmNewGroupOptions {
   forumlineStore: ForumlineStore

@@ -12,8 +12,8 @@
  * - Display a success confirmation screen after the password is updated
  * - Auto-redirect to the main app after a 2-second delay on success
  */
-import type { GoTrueAuthClient } from '../lib/gotrue-auth.js'
-import { createButton, createInput } from './ui.js'
+import type { GoTrueAuthClient } from './gotrue-auth.js'
+import { createButton, createInput } from '../shared/ui.js'
 
 interface ResetPasswordOptions {
   auth: GoTrueAuthClient

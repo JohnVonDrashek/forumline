@@ -13,8 +13,8 @@
  * - Show loading states on the submit button during API calls
  * - Communicate the purpose of Forumline accounts (cross-forum DMs) in the headings
  */
-import type { GoTrueAuthClient } from '../lib/gotrue-auth.js'
-import { createButton, createInput } from './ui.js'
+import type { GoTrueAuthClient } from './gotrue-auth.js'
+import { createButton, createInput } from '../shared/ui.js'
 
 type AuthMode = 'signin' | 'signup' | 'forgot'
 

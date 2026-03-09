@@ -14,8 +14,8 @@
  * - Reactively update when forums are added, removed, or unread counts change
  * - Efficiently update only changed DOM elements (badges, active states) without full re-renders
  */
-import type { ForumStore, ForumMembership } from '../lib/index.js'
-import { createButton, createInput } from './ui.js'
+import type { ForumStore, ForumMembership } from './forum-store.js'
+import { createButton, createInput } from '../shared/ui.js'
 
 interface MobileForumListOptions {
   forumStore: ForumStore

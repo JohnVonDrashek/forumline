@@ -11,7 +11,7 @@
  * - Toggle DMs and Settings views on/off (tapping the active tab returns to Forums)
  * - Efficiently update only when the active view or DM unread count changes
  */
-import type { ForumStore } from '../lib/index.js'
+import type { ForumStore } from '../forums/forum-store.js'
 
 export type AppView = 'forums' | 'settings' | 'dms'
 

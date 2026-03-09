@@ -16,11 +16,12 @@
  * - Detect which forums are hosted sites owned by the current user
  * - Reactively update the forum list when forums are added or removed
  */
-import type { GoTrueAuthClient, ForumlineSession } from '../lib/gotrue-auth.js'
-import type { ForumStore, ForumlineStore } from '../lib/index.js'
-import { createForumlineAuth } from './forumline-auth.js'
+import type { GoTrueAuthClient, ForumlineSession } from '../auth/gotrue-auth.js'
+import type { ForumStore } from '../forums/forum-store.js'
+import type { ForumlineStore } from '../shared/forumline-store.js'
+import { createForumlineAuth } from '../auth/forumline-auth.js'
 import { createSiteManager } from './site-manager.js'
-import { createAvatar, createButton, createCard } from './ui.js'
+import { createAvatar, createButton, createCard } from '../shared/ui.js'
 
 interface SettingsPageOptions {
   forumlineSession: ForumlineSession | null

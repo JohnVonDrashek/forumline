@@ -24,9 +24,9 @@ import {
   isMuted,
   type CallState,
   type CallInfo,
-} from '../lib/call-manager.js'
-import { createAvatar } from './ui.js'
-import { playRingtone } from '../lib/call-ringtone.js'
+} from './call-manager.js'
+import { createAvatar } from '../shared/ui.js'
+import { playRingtone } from './call-ringtone.js'
 
 export function createCallOverlay() {
   const el = document.createElement('div')

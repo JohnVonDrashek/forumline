@@ -16,7 +16,7 @@
  * - Clear all state on sign-out
  */
 import type { UnreadCounts } from '@johnvondrashek/forumline-protocol'
-import { createStore, type Store } from './store.js'
+import { createStore, type Store } from '../shared/store.js'
 
 // ============================================================================
 // Types
