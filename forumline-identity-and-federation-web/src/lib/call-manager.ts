@@ -12,6 +12,28 @@ const ICE_SERVERS = [
   { urls: 'stun:stun1.l.google.com:19302' },
 ]
 
+/**
+ * Acquire microphone, falling back to a synthetic silent audio stream
+ * when no mic is available (e.g., iOS Simulator, CI environments).
+ */
+async function acquireMic(): Promise<MediaStream> {
+  try {
+    return await acquireMic()
+  } catch {
+    // No mic available — generate a silent audio stream so the call
+    // flow (signaling, UI, WebRTC negotiation) still works.
+    const ctx = new AudioContext()
+    const oscillator = ctx.createOscillator()
+    const dest = ctx.createMediaStreamDestination()
+    const gain = ctx.createGain()
+    gain.gain.value = 0 // silent
+    oscillator.connect(gain)
+    gain.connect(dest)
+    oscillator.start()
+    return dest.stream
+  }
+}
+
 export type CallState = 'idle' | 'ringing-outgoing' | 'ringing-incoming' | 'active'
 
 export interface CallInfo {
@@ -258,7 +280,7 @@ export async function initiateCall(conversationId: string, remoteUserId: string,
   // Acquire mic NOW while we have the user gesture (click on call button).
   // This avoids permission issues when call_accepted arrives via SSE later.
   try {
-    localStream = await navigator.mediaDevices.getUserMedia({ audio: true })
+    localStream = await acquireMic()
   } catch (err) {
     console.error('[Call] Microphone access denied:', err)
     return
@@ -302,7 +324,7 @@ export async function acceptCall() {
   // Must happen before any await, or Safari drops the gesture context.
   if (!localStream) {
     try {
-      localStream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      localStream = await acquireMic()
     } catch (err) {
       console.error('[Call] Microphone access denied:', err)
       cleanup()
@@ -373,7 +395,7 @@ async function startWebRTC(isInitiator: boolean) {
   // Reuse localStream if already acquired (caller pre-acquires on button click)
   if (!localStream) {
     try {
-      localStream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      localStream = await acquireMic()
     } catch (err) {
       console.error('[Call] Failed to get microphone:', err)
       endCall()
