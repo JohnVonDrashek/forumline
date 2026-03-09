@@ -8,9 +8,6 @@ struct ForumlineApp: App {
         WindowGroup {
             WebViewContainer()
                 .ignoresSafeArea()
-                .onOpenURL { url in
-                    DeepLinkHandler.shared.handle(url: url)
-                }
         }
     }
 }
