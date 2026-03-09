@@ -11,9 +11,9 @@
  * - Show a "No Forumline users found" message when the search returns no results
  * - Navigate to the conversation with the selected user when tapped
  */
-import type { ForumlineStore } from '../lib/index.js'
+import type { ForumlineStore } from '../shared/forumline-store.js'
 import type { ForumlineProfile } from '@johnvondrashek/forumline-protocol'
-import { createAvatar, createInput, createSpinner } from './ui.js'
+import { createAvatar, createInput, createSpinner } from '../shared/ui.js'
 
 interface DmNewMessageOptions {
   forumlineStore: ForumlineStore

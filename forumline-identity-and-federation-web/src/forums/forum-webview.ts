@@ -18,7 +18,7 @@
  */
 import type { ForumToForumlineMessage, ForumlineToForumMessage, UnreadCounts, ForumNotification } from '@johnvondrashek/forumline-protocol'
 import type { ForumMembership } from './forum-store.js'
-import { showToast } from '../components/ui.js'
+import { showToast } from '../shared/ui.js'
 
 export interface ForumWebviewOptions {
   forum: ForumMembership

@@ -20,8 +20,8 @@
  * - Clean up all WebRTC, media, and SSE resources when a call ends
  */
 import { forumlineAuth } from '../app.js'
-import type { ForumlineStore } from './forumline-store.js'
-import { isTauri, getTauriNotification } from './tauri.js'
+import type { ForumlineStore } from '../shared/forumline-store.js'
+import { isTauri, getTauriNotification } from '../shared/tauri.js'
 
 const ICE_SERVERS = [
   { urls: 'stun:stun.l.google.com:19302' },

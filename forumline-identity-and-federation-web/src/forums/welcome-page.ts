@@ -12,10 +12,11 @@
  * - Reactively update when forums are added/removed or Forumline connection status changes
  * - Efficiently re-render only the sections that actually changed
  */
-import type { ForumlineSession } from '../lib/gotrue-auth.js'
-import type { ForumStore, ForumlineStore } from '../lib/index.js'
+import type { ForumlineSession } from '../auth/gotrue-auth.js'
+import type { ForumStore } from './forum-store.js'
+import type { ForumlineStore } from '../shared/forumline-store.js'
 import { createMobileForumList } from './mobile-forum-list.js'
-import { createButton } from './ui.js'
+import { createButton } from '../shared/ui.js'
 
 interface WelcomePageOptions {
   forumlineSession: ForumlineSession | null

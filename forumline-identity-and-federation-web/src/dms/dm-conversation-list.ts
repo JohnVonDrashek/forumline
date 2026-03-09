@@ -16,11 +16,11 @@
  * - Efficiently update only changed DOM elements (badges, timestamps, previews) on refresh
  * - Navigate to the conversation thread when a conversation is tapped
  */
-import type { ForumlineStore } from '../lib/index.js'
+import type { ForumlineStore } from '../shared/forumline-store.js'
 import type { ForumlineDmConversation, ForumlineConversationMember } from '@johnvondrashek/forumline-protocol'
-import { createAvatar, createSpinner } from './ui.js'
-import { formatShortTimeAgo } from '../lib/dateFormatters.js'
-import { subscribeDmEvents } from '../lib/dm-sse.js'
+import { createAvatar, createSpinner } from '../shared/ui.js'
+import { formatShortTimeAgo } from '../shared/dateFormatters.js'
+import { subscribeDmEvents } from './dm-sse.js'
 
 interface DmConversationListOptions {
   forumlineStore: ForumlineStore

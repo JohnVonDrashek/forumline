@@ -16,8 +16,8 @@
  * - Enforce permission checks and show an error if the user lacks access
  * - Navigate between the file list view and the editor view with back navigation
  */
-import type { GoTrueAuthClient } from '../lib/gotrue-auth.js'
-import { createButton, createInput, createCard, createSpinner, showToast } from './ui.js'
+import type { GoTrueAuthClient } from '../auth/gotrue-auth.js'
+import { createButton, createInput, createCard, createSpinner, showToast } from '../shared/ui.js'
 
 interface SiteManagerOptions {
   slug: string

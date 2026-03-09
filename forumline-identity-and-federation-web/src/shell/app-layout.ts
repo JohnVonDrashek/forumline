@@ -18,18 +18,21 @@
  * - Initialize and display the voice call overlay for incoming/outgoing calls
  * - Lazily create and persistently keep alive child views (webview, DMs, settings, welcome)
  */
-import type { GoTrueAuthClient, ForumlineSession } from '../lib/gotrue-auth.js'
+import type { GoTrueAuthClient, ForumlineSession } from '../auth/gotrue-auth.js'
 import type { ForumNotification } from '@johnvondrashek/forumline-protocol'
-import { createForumWebview, isTauri, getTauriNotification, setupDeepLinkListener, type ForumStore, type ForumlineStore, type DeepLinkTarget } from '../lib/index.js'
-import { createWelcomePage } from './welcome-page.js'
-import { createDmPanel } from './dm-panel.js'
-import { createSettingsPage } from './settings-page.js'
+import { createForumWebview, type ForumWebviewInstance } from '../forums/forum-webview.js'
+import { type ForumStore } from '../forums/forum-store.js'
+import { isTauri, getTauriNotification } from '../shared/tauri.js'
+import { setupDeepLinkListener, type DeepLinkTarget } from '../shared/deep-link.js'
+import { type ForumlineStore } from '../shared/forumline-store.js'
+import { createWelcomePage } from '../forums/welcome-page.js'
+import { createDmPanel } from '../dms/dm-panel.js'
+import { createSettingsPage } from '../settings/settings-page.js'
 import { createMobileTabBar, type AppView } from './mobile-tab-bar.js'
-import type { ForumWebviewInstance } from '../lib/index.js'
-import { subscribeDmEvents } from '../lib/dm-sse.js'
-import { initCallManager, destroyCallManager } from '../lib/call-manager.js'
-import { createCallOverlay } from './call-overlay.js'
-import { warmAudioContext } from '../lib/call-ringtone.js'
+import { subscribeDmEvents } from '../dms/dm-sse.js'
+import { initCallManager, destroyCallManager } from '../calls/call-manager.js'
+import { createCallOverlay } from '../calls/call-overlay.js'
+import { warmAudioContext } from '../calls/call-ringtone.js'
 
 /** Persist auth state change to Forumline DB */
 async function updateForumAuthState(auth: GoTrueAuthClient, forumDomain: string, authed: boolean) {
@@ -458,6 +461,19 @@ export function createAppLayout({ forumlineSession, forumStore, forumlineStore, 
   fetchMemberships()
   registerPush()
   startDmUpdates()
+
+  // Eagerly create DM panel (hidden) so conversations are pre-loaded when the user switches tabs
+  const { isForumlineConnected } = forumlineStore.get()
+  if (isForumlineConnected) {
+    dmChild = createDmPanel({
+      forumlineStore,
+      onClose: () => { view = 'forums'; switchView() },
+      onGoToSettings: () => { view = 'settings'; switchView() },
+    })
+    mainArea.appendChild(dmChild.el)
+    hideEl(dmChild.el)
+  }
+
   switchView()
 
   return {

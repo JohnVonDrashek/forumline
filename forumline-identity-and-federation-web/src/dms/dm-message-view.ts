@@ -18,12 +18,12 @@
  * - Update in real-time via SSE, filtered to the current conversation
  * - Initiate a voice call to the other user in 1:1 conversations
  */
-import type { ForumlineStore } from '../lib/index.js'
+import type { ForumlineStore } from '../shared/forumline-store.js'
 import type { ForumlineDirectMessage, ForumlineDmConversation, ForumlineConversationMember } from '@johnvondrashek/forumline-protocol'
-import { createAvatar, createButton, createInput, createSpinner } from './ui.js'
-import { formatMessageTime } from '../lib/dateFormatters.js'
-import { subscribeDmEvents } from '../lib/dm-sse.js'
-import { initiateCall, getCallState } from '../lib/call-manager.js'
+import { createAvatar, createButton, createInput, createSpinner } from '../shared/ui.js'
+import { formatMessageTime } from '../shared/dateFormatters.js'
+import { subscribeDmEvents } from './dm-sse.js'
+import { initiateCall, getCallState } from '../calls/call-manager.js'
 
 interface DmMessageViewOptions {
   forumlineStore: ForumlineStore

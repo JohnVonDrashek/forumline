@@ -12,10 +12,11 @@
  * - Show a sign-in prompt with a link to settings when the user is not connected to Forumline
  * - Create or retrieve a 1:1 conversation when a user is selected from the new message search
  * - Display a header with contextual title (Messages, New Message, New Group) and action buttons
- * - Destroy child views on navigation to prevent memory leaks
+ * - Keep the conversation list alive across navigation to avoid re-fetching and spinner flashes
+ * - Destroy ephemeral child views (conversation thread, new message, new group) on navigation
  */
-import type { ForumlineStore } from '../lib/index.js'
-import { createButton } from './ui.js'
+import type { ForumlineStore } from '../shared/forumline-store.js'
+import { createButton } from '../shared/ui.js'
 import { createDmConversationList } from './dm-conversation-list.js'
 import { createDmMessageView } from './dm-message-view.js'
 import { createDmNewMessage } from './dm-new-message.js'
@@ -32,23 +33,60 @@ interface DmPanelOptions {
 export function createDmPanel({ forumlineStore, onClose, onGoToSettings }: DmPanelOptions) {
   let dmView: DmView = 'list'
   let selectedConversationId: string | null = null
-  let currentChild: { el: HTMLElement; destroy: () => void } | null = null
+
+  // Ephemeral child (conversation thread, new message, new group) — destroyed on navigation
+  let ephemeralChild: { el: HTMLElement; destroy: () => void } | null = null
+
+  // Persistent conversation list — created once, kept alive
+  let listChild: { el: HTMLElement; destroy: () => void } | null = null
 
   const el = document.createElement('div')
   el.className = 'flex flex-col w-full overflow-hidden'
   el.style.height = '100%'
   el.style.background = 'var(--color-bg)'
 
+  // Persistent header and content containers
+  const header = document.createElement('div')
+  header.className = 'dm-header'
+
+  const content = document.createElement('div')
+  content.className = 'flex-1 overflow-hidden'
+
+  el.appendChild(header)
+  el.appendChild(content)
+
+  function showEl(e: HTMLElement) { e.style.display = '' }
+  function hideEl(e: HTMLElement) { e.style.display = 'none' }
+
+  function destroyEphemeral() {
+    if (ephemeralChild) {
+      ephemeralChild.el.remove()
+      ephemeralChild.destroy()
+      ephemeralChild = null
+    }
+  }
+
+  function ensureListChild() {
+    if (listChild) return
+    listChild = createDmConversationList({
+      forumlineStore,
+      onSelectConversation: (conversationId) => {
+        selectedConversationId = conversationId
+        dmView = 'conversation'
+        render()
+      },
+    })
+    content.appendChild(listChild.el)
+  }
+
   function render() {
-    currentChild?.destroy()
-    currentChild = null
-    el.innerHTML = ''
+    // Clean up ephemeral views
+    destroyEphemeral()
 
     const { isForumlineConnected } = forumlineStore.get()
 
-    // Header
-    const header = document.createElement('div')
-    header.className = 'dm-header'
+    // ---- Header ----
+    header.innerHTML = ''
 
     const headerLeft = document.createElement('div')
     headerLeft.className = 'flex items-center gap-sm'
@@ -91,13 +129,12 @@ export function createDmPanel({ forumlineStore, onClose, onGoToSettings }: DmPan
       headerRight.appendChild(newBtn)
     }
     header.appendChild(headerRight)
-    el.appendChild(header)
 
-    // Content
-    const content = document.createElement('div')
-    content.className = 'flex-1 overflow-hidden'
-
+    // ---- Content ----
     if (!isForumlineConnected) {
+      // Hide list if it exists
+      if (listChild) hideEl(listChild.el)
+
       const empty = document.createElement('div')
       empty.className = 'empty-state'
       const p = document.createElement('p')
@@ -110,8 +147,10 @@ export function createDmPanel({ forumlineStore, onClose, onGoToSettings }: DmPan
         className: 'mt-lg',
         onClick: onGoToSettings,
       }))
+      ephemeralChild = { el: empty, destroy() {} }
       content.appendChild(empty)
     } else if (dmView === 'new') {
+      if (listChild) hideEl(listChild.el)
       const newMsg = createDmNewMessage({
         forumlineStore,
         onSelectUser: async (userId) => {
@@ -127,9 +166,10 @@ export function createDmPanel({ forumlineStore, onClose, onGoToSettings }: DmPan
           }
         },
       })
-      currentChild = newMsg
+      ephemeralChild = newMsg
       content.appendChild(newMsg.el)
     } else if (dmView === 'new-group') {
+      if (listChild) hideEl(listChild.el)
       const newGroup = createDmNewGroup({
         forumlineStore,
         onCreated: (conversationId) => {
@@ -138,29 +178,21 @@ export function createDmPanel({ forumlineStore, onClose, onGoToSettings }: DmPan
           render()
         },
       })
-      currentChild = newGroup
+      ephemeralChild = newGroup
       content.appendChild(newGroup.el)
     } else if (dmView === 'conversation' && selectedConversationId) {
+      if (listChild) hideEl(listChild.el)
       const msgView = createDmMessageView({
         forumlineStore,
         conversationId: selectedConversationId,
       })
-      currentChild = msgView
+      ephemeralChild = msgView
       content.appendChild(msgView.el)
     } else {
-      const convList = createDmConversationList({
-        forumlineStore,
-        onSelectConversation: (conversationId) => {
-          selectedConversationId = conversationId
-          dmView = 'conversation'
-          render()
-        },
-      })
-      currentChild = convList
-      content.appendChild(convList.el)
+      // List view — show persistent conversation list
+      ensureListChild()
+      showEl(listChild!.el)
     }
-
-    el.appendChild(content)
   }
 
   render()
@@ -168,7 +200,8 @@ export function createDmPanel({ forumlineStore, onClose, onGoToSettings }: DmPan
   return {
     el,
     destroy() {
-      currentChild?.destroy()
+      destroyEphemeral()
+      listChild?.destroy()
     },
   }
 }

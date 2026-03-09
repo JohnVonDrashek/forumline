@@ -12,11 +12,12 @@
  * - React to auth state changes (sign-in, sign-out, token refresh, recovery) and re-render accordingly
  * - Clean up all child views and subscriptions when the app is destroyed
  */
-import { GoTrueAuthClient, type ForumlineSession } from './lib/gotrue-auth.js'
-import { createForumStore, createForumlineStore, type ForumStore, type ForumlineStore } from './lib/index.js'
-import { createResetPassword } from './components/reset-password.js'
-import { createForumlineAuth } from './components/forumline-auth.js'
-import { createAppLayout } from './components/app-layout.js'
+import { GoTrueAuthClient, type ForumlineSession } from './auth/gotrue-auth.js'
+import { createForumStore, type ForumStore } from './forums/forum-store.js'
+import { createForumlineStore, type ForumlineStore } from './shared/forumline-store.js'
+import { createResetPassword } from './auth/reset-password.js'
+import { createForumlineAuth } from './auth/forumline-auth.js'
+import { createAppLayout } from './shell/app-layout.js'
 
 export const forumlineAuth = new GoTrueAuthClient()
 
