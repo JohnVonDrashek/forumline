@@ -9,6 +9,9 @@ pre-commit:
       run: bash .githooks/sops-check.sh
       glob: "**/.env*"
 
+    gitleaks:
+      run: gitleaks protect --staged --no-banner
+
     eslint-workspace:
       glob: "{forumline-identity-and-federation-web,published-npm-packages}/**/*.{ts,tsx,js,mjs}"
       run: pnpm lint

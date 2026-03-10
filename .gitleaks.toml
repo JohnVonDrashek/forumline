@@ -1,0 +1,30 @@
+[extend]
+useDefault = true
+
+[[rules]]
+id = "database-url-with-password"
+description = "Database connection string with embedded password"
+regex = '''(?i)(postgres|mysql|mongodb)://[^:]+:[^@\s]+@'''
+keywords = ["postgres", "mysql", "mongodb"]
+
+[[rules]]
+id = "jwt-secret"
+description = "JWT secret assignment"
+regex = '''(?i)jwt[_-]?secret\s*[=:]\s*["']([^"']{16,})["']'''
+keywords = ["jwt_secret", "jwt-secret", "JWT_SECRET"]
+
+[[rules]]
+id = "password-assignment"
+description = "Password assigned in config"
+regex = '''(?i)(password|passwd)\s*[=:]\s*["']([^"']{8,})["']'''
+keywords = ["password", "passwd"]
+
+[[rules]]
+id = "secret-assignment"
+description = "Secret or key value assignment"
+regex = '''(?i)(client_secret|api_secret|secret_key|smtp_pass|service_role_key)\s*[=:]\s*["']([^"']{8,})["']'''
+keywords = ["client_secret", "api_secret", "secret_key", "smtp_pass", "service_role_key"]
+
+# Allow .env.example and .env.enc files — these are safe (placeholders / encrypted)
+[allowlist]
+paths = ['''\.env\.example$''', '''\.env\.enc$''']
