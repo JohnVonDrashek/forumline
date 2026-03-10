@@ -64,12 +64,14 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: shared-go/go.mod
+          cache: false
 
       - name: Install splitsh-lite
         run: |
+          mkdir -p /tmp/splitsh
           curl -fsSL https://github.com/splitsh/lite/releases/download/v1.0.1/lite_linux_amd64.tar.gz -o /tmp/splitsh.tar.gz
-          tar -xzf /tmp/splitsh.tar.gz -C /tmp
-          sudo mv /tmp/splitsh-lite /usr/local/bin/
+          tar -xzf /tmp/splitsh.tar.gz -C /tmp/splitsh
+          sudo mv /tmp/splitsh/splitsh-lite /usr/local/bin/
 
       - name: Split and rewrite
         run: |
