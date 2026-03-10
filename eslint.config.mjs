@@ -13,7 +13,7 @@ export default tseslint.config(
       'example-forum-instances-and-shared-forum-server/forum-a/',
       'example-forum-instances-and-shared-forum-server/forum-b/',
       'website/',
-      'scripts/',
+      '.github/scripts/',
       'published-npm-packages/protocol/src/**/*.d.ts',
     ],
   },
