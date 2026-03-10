@@ -105,4 +105,6 @@ jobs:
 
       - name: Push to read-only repo
         run: |
+          # Clear the credential helper set by actions/checkout so our token takes priority
+          git config --unset-all http.https://github.com/.extraheader || true
           git push "https://x-access-token:${{ secrets.SPLIT_REPO_TOKEN }}@github.com/forumline/forum-server.git" HEAD:main --force
