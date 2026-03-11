@@ -15,48 +15,48 @@ pre-commit:
         - run: "! command -v gitleaks >/dev/null 2>&1"
 
     eslint-workspace:
-      glob: "{forumline-identity-and-federation-web,published-npm-packages}/**/*.{ts,tsx,js,mjs}"
+      glob: "{services/forumline-web,packages}/**/*.{ts,tsx,js,mjs}"
       run: pnpm lint
 
     eslint-forum:
-      root: "forum-server/"
+      root: "services/forum/"
       glob: "src/**/*.js"
       run: pnpm lint
 
     golangci-lint:
       glob: "**/*.go"
       run: >
-        cd shared-go &&
+        cd packages/shared-go &&
         go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.11.2 run ./... &&
-        cd ../forumline-identity-and-federation-api &&
+        cd ../../services/forumline-api &&
         go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.11.2 run ./... &&
-        cd ../forum-server &&
+        cd ../forum &&
         go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.11.2 run ./... &&
-        cd ../example-forum-instances-and-shared-forum-server &&
+        cd ../hosted &&
         go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.11.2 run ./...
 
     go-test-shared:
-      glob: "shared-go/**/*.go"
-      root: "shared-go/"
+      glob: "packages/shared-go/**/*.go"
+      root: "packages/shared-go/"
       run: go test ./...
 
     go-test-api:
-      glob: "{forumline-identity-and-federation-api,shared-go}/**/*.go"
-      root: "forumline-identity-and-federation-api/"
+      glob: "{services/forumline-api,packages/shared-go}/**/*.go"
+      root: "services/forumline-api/"
       run: go test ./...
 
     go-test-forum:
-      glob: "{forum-server,shared-go}/**/*.go"
-      root: "forum-server/"
+      glob: "{services/forum,packages/shared-go}/**/*.go"
+      root: "services/forum/"
       run: go test ./...
 
     go-test-forum-variants:
-      glob: "{example-forum-instances-and-shared-forum-server,shared-go,forum-server}/**/*.go"
-      root: "example-forum-instances-and-shared-forum-server/"
+      glob: "{services/hosted,packages/shared-go,services/forum}/**/*.go"
+      root: "services/hosted/"
       run: go test ./...
 
     ts-test:
-      glob: "{forumline-identity-and-federation-web,published-npm-packages}/**/*.{ts,tsx,js,mjs}"
+      glob: "{services/forumline-web,packages}/**/*.{ts,tsx,js,mjs}"
       run: pnpm test
 
 pre-push:
@@ -66,4 +66,4 @@ pre-push:
       run: bash .githooks/pre-push
     validate-ci:
       run: bash .githooks/validate-ci.sh
-      glob: "{.github/workflows/*.yml,docker/Dockerfile.*,published-npm-packages/**}"
+      glob: "{.github/workflows/*.yml,deploy/docker/Dockerfile.*,packages/**}"

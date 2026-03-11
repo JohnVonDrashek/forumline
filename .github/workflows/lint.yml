@@ -9,9 +9,9 @@ jobs:
         with:
           go-version: '1.26'
           cache-dependency-path: |
-            forumline-identity-and-federation-api/go.sum
-            example-forum-instances-and-shared-forum-server/go.sum
-            forum-server/go.sum
+            services/forumline-api/go.sum
+            services/hosted/go.sum
+            services/forum/go.sum
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:

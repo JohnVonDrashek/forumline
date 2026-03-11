@@ -5,16 +5,16 @@ on:
   push:
     branches: [main]
     paths:
-      - 'forumline-identity-and-federation-api/**'
-      - 'forumline-identity-and-federation-web/src/**'
-      - 'forumline-identity-and-federation-web/index.html'
-      - 'forumline-identity-and-federation-web/vite.config.ts'
-      - 'forumline-identity-and-federation-web/tsconfig.json'
-      - 'forumline-identity-and-federation-web/package.json'
-      - 'published-npm-packages/**'
+      - 'services/forumline-api/**'
+      - 'services/forumline-web/src/**'
+      - 'services/forumline-web/index.html'
+      - 'services/forumline-web/vite.config.ts'
+      - 'services/forumline-web/tsconfig.json'
+      - 'services/forumline-web/package.json'
+      - 'packages/**'
       - 'pnpm-lock.yaml'
-      - 'docker/Dockerfile.go-forumline'
-      - 'production-docker-compose-configs/forumline/**'
+      - 'deploy/docker/Dockerfile.go-forumline'
+      - 'deploy/compose/forumline/**'
 
 jobs:
   deploy:
@@ -35,7 +35,7 @@ jobs:
       - name: Decrypt secrets
         env:
           SOPS_AGE_KEY: ${{ secrets.SOPS_AGE_KEY }}
-        run: sops -d --input-type dotenv --output-type dotenv production-docker-compose-configs/forumline/.env.enc > /tmp/forumline.env
+        run: sops -d --input-type dotenv --output-type dotenv deploy/compose/forumline/.env.enc > /tmp/forumline.env
 
       - name: Install cloudflared
         run: |
@@ -59,7 +59,7 @@ jobs:
       - name: Deploy
         run: |
           scp /tmp/forumline.env forumline-prod:/opt/forumline/.env
-          scp production-docker-compose-configs/forumline/docker-compose.yml forumline-prod:/opt/forumline/docker-compose.yml
+          scp deploy/compose/forumline/docker-compose.yml forumline-prod:/opt/forumline/docker-compose.yml
           ssh forumline-prod "cd /opt/forumline/repo && git fetch origin main && git reset --hard origin/main"
-          ssh forumline-prod 'cd /opt/forumline && for f in repo/forumline-identity-and-federation-api/migrations/*.sql; do echo "Applying migration: $f" && docker compose exec -T postgres psql -U postgres -d postgres < "$f"; done'
+          ssh forumline-prod 'cd /opt/forumline && for f in repo/services/forumline-api/migrations/*.sql; do echo "Applying migration: $f" && docker compose exec -T postgres psql -U postgres -d postgres < "$f"; done'
           ssh forumline-prod "cd /opt/forumline && docker compose up -d --build forumline && docker compose ps"

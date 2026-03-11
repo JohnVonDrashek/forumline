@@ -3,7 +3,7 @@ name: Terraform Plan
 on:
   pull_request:
     paths:
-      - 'terraform/**'
+      - 'deploy/terraform/**'
       - '.github/workflows/terraform-plan.yml'
 
 permissions:
@@ -26,12 +26,12 @@ jobs:
           tofu_version: '1.11.5'
 
       - name: Init
-        working-directory: terraform
+        working-directory: deploy/terraform
         run: tofu init
 
       - name: Plan
         id: plan
-        working-directory: terraform
+        working-directory: deploy/terraform
         run: |
           tofu plan -var-file=prod.tfvars -no-color -out=tfplan 2>&1 | tee plan.txt
           echo "exitcode=$?" >> "$GITHUB_OUTPUT"
@@ -42,7 +42,7 @@ jobs:
         with:
           script: |
             const fs = require('fs');
-            let plan = fs.readFileSync('terraform/plan.txt', 'utf8');
+            let plan = fs.readFileSync('deploy/terraform/plan.txt', 'utf8');
 
             // Trim to 60k chars to stay under GitHub comment limit
             if (plan.length > 60000) {

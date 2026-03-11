@@ -10,10 +10,9 @@ export default tseslint.config(
       '**/.vercel/',
       '**/target/',
       '.claude/',
-      'example-forum-instances-and-shared-forum-server/forum-a/',
-      'website/',
+      'services/website/',
       '.github/scripts/',
-      'published-npm-packages/protocol/src/**/*.d.ts',
+      'packages/protocol/src/**/*.d.ts',
     ],
   },
   ...tseslint.configs.recommended,
@@ -23,9 +22,9 @@ export default tseslint.config(
       parserOptions: {
         projectService: {
           allowDefaultProject: [
-            'forumline-identity-and-federation-web/vite.config.ts',
+            'services/forumline-web/vite.config.ts',
             'vitest.workspace.ts',
-            'published-npm-packages/protocol/src/validation.test.ts',
+            'packages/protocol/src/validation.test.ts',
           ],
         },
         tsconfigRootDir: import.meta.dirname,

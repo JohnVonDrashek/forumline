@@ -1,0 +1,36 @@
+{
+  "name": "@forumline/protocol",
+  "version": "0.4.0",
+  "description": "Forumline federation protocol types",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./validation": {
+      "types": "./dist/validation.d.ts",
+      "default": "./dist/validation.js"
+    }
+  },
+  "files": ["dist"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/forumline/forumline.git",
+    "directory": "packages/protocol"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "zod": ">=3.23.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}

@@ -30,26 +30,7 @@ importers:
         specifier: ^4.0.18
         version: 4.0.18(@types/node@25.3.5)
 
-  forumline-identity-and-federation-web:
-    dependencies:
-      '@forumline/protocol':
-        specifier: workspace:*
-        version: link:../published-npm-packages/protocol
-      vanjs-core:
-        specifier: ^1.6.0
-        version: 1.6.0
-      vanjs-ext:
-        specifier: ^0.6.3
-        version: 0.6.3
-    devDependencies:
-      typescript:
-        specifier: ^5.9.3
-        version: 5.9.3
-      vite:
-        specifier: ^6.0.0
-        version: 6.4.1(@types/node@25.3.5)
-
-  published-npm-packages/protocol:
+  packages/protocol:
     dependencies:
       zod:
         specifier: '>=3.23.0'
@@ -59,7 +40,7 @@ importers:
         specifier: ^5.9.3
         version: 5.9.3
 
-  published-npm-packages/server-sdk:
+  packages/server-sdk:
     dependencies:
       '@forumline/protocol':
         specifier: workspace:*
@@ -74,6 +55,25 @@ importers:
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
+
+  services/forumline-web:
+    dependencies:
+      '@forumline/protocol':
+        specifier: workspace:*
+        version: link:../../packages/protocol
+      vanjs-core:
+        specifier: ^1.6.0
+        version: 1.6.0
+      vanjs-ext:
+        specifier: ^0.6.3
+        version: 0.6.3
+    devDependencies:
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      vite:
+        specifier: ^6.0.0
+        version: 6.4.1(@types/node@25.3.5)
 
 packages:
 

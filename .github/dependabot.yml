@@ -9,15 +9,7 @@ updates:
         patterns: ["*"]
 
   - package-ecosystem: npm
-    directory: /example-forum-instances-and-shared-forum-server/forum-a
-    schedule:
-      interval: weekly
-    groups:
-      forum-a-dependencies:
-        patterns: ["*"]
-
-  - package-ecosystem: npm
-    directory: /forumline-identity-and-federation-web
+    directory: /services/forumline-web
     schedule:
       interval: weekly
     groups:

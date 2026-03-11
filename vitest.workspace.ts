@@ -4,19 +4,19 @@ export default defineWorkspace([
   {
     test: {
       name: 'protocol',
-      root: './published-npm-packages/protocol',
+      root: './packages/protocol',
       include: ['src/**/*.test.ts'],
     },
   },
   {
     test: {
       name: 'web-app',
-      root: './forumline-identity-and-federation-web',
+      root: './services/forumline-web',
       include: ['src/**/*.test.ts'],
     },
     resolve: {
       alias: {
-        '@forumline/protocol': './published-npm-packages/protocol/src/index.ts',
+        '@forumline/protocol': './packages/protocol/src/index.ts',
       },
     },
   },

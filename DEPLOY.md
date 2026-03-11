@@ -12,9 +12,9 @@ Both apps deploy via **GitHub Actions** on push to `main` → **self-hosted Prox
 
 All deploy via GitHub Actions workflows:
 
-- `.github/workflows/deploy-website.yml` — triggers on `website/` changes
-- `.github/workflows/deploy-forum.yml` — triggers on `example-forum-instances-and-shared-forum-server/` changes
-- `.github/workflows/deploy-forumline.yml` — triggers on `forumline-identity-and-federation-api/`, `forumline-identity-and-federation-web/`, or `published-npm-packages/` changes
+- `.github/workflows/deploy-website.yml` — triggers on `services/website/` changes
+- `.github/workflows/deploy-forum.yml` — triggers on `services/forum/` changes
+- `.github/workflows/deploy-forumline.yml` — triggers on `services/forumline-api/`, `services/forumline-web/`, or `packages/` changes
 
 Required GitHub secrets:
 - `FORUM_SSH_KEY` — SSH key for production servers
@@ -27,20 +27,20 @@ Required GitHub secrets:
 - `TF_STATE_ENCRYPTION_PASSPHRASE` — passphrase for OpenTofu state encryption
 - `GITHUB_PACKAGES_TOKEN` (automatically provided)
 
-`.github/workflows/terraform-plan.yml` runs `tofu plan` on PRs that touch `terraform/`.
+`.github/workflows/terraform-plan.yml` runs `tofu plan` on PRs that touch `deploy/terraform/`.
 
 **Do NOT deploy manually.**
 
 ## Cloudflare Tunnel (Terraform)
 
-Tunnel ingress and Zero Trust Access policies managed via OpenTofu in `terraform/`. Config lives in Cloudflare (remotely-managed). `cloudflared` runs with `--token` on `forum-prod` (CT 100) — no local config file.
+Tunnel ingress and Zero Trust Access policies managed via OpenTofu in `deploy/terraform/`. Config lives in Cloudflare (remotely-managed). `cloudflared` runs with `--token` on `forum-prod` (CT 100) — no local config file.
 
 **Managed resources:** tunnel ingress rules, Access applications for SSH endpoints, short-lived SSH CA certificates, service token for GitHub Actions deploys, developer email allow policies.
 
 **Changing tunnel routes:**
 
 ```bash
-cd terraform
+cd deploy/terraform
 AWS_ACCESS_KEY_ID=$(security find-generic-password -a access-key-id -s cloudflare-r2-terraform-state -w) \
 AWS_SECRET_ACCESS_KEY=$(security find-generic-password -a secret-access-key -s cloudflare-r2-terraform-state -w) \
 TF_VAR_cloudflare_api_token=$(security find-generic-password -a api-token -s cloudflare-tunnel-terraform -w) \
@@ -80,11 +80,11 @@ Each service runs on a Proxmox LXC with Docker, SSH access via Cloudflare Tunnel
    git clone https://github.com/forumline/forumline.git /opt/website/repo
    ```
 4. Add the deploy SSH public key to `/root/.ssh/authorized_keys`
-5. Add tunnel routes in `terraform/tunnel.tf` and apply (see above)
+5. Add tunnel routes in `deploy/terraform/tunnel.tf` and apply (see above)
 6. Test the deploy:
    ```bash
    cd /opt/website/repo && git pull origin main
-   cp production-docker-compose-configs/website/docker-compose.yml /opt/website/docker-compose.yml
+   cp deploy/compose/website/docker-compose.yml /opt/website/docker-compose.yml
    cd /opt/website && docker compose up -d --build website
    ```
 
@@ -96,9 +96,9 @@ Same pattern — see existing LXC configs. Each uses `/opt/<service>/repo` and `
 
 ```bash
 pnpm install                            # from root — sets up workspaces
-cd forumline-identity-and-federation-api && docker compose up -d  # start Postgres + GoTrue
-cd examples && go run ./forum-a/        # start forum backend
-cd example-forum-instances-and-shared-forum-server/forum-a && pnpm dev         # start forum frontend
+cd services/forumline-api && docker compose up -d  # start Postgres + GoTrue
+cd services/forum && go run .           # start forum backend
+cd services/forum && pnpm dev           # start forum frontend
 ```
 
-Create `example-forum-instances-and-shared-forum-server/forum-a/.env.local` and `forumline-identity-and-federation-api/.env.local` with the required env vars.
+Create `services/forum/.env.local` and `services/forumline-api/.env.local` with the required env vars.

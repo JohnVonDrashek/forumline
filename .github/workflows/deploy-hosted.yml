@@ -5,12 +5,12 @@ on:
   push:
     branches: [main]
     paths:
-      - 'example-forum-instances-and-shared-forum-server/**'
-      - 'forum-server/**'
-      - 'shared-go/**'
-      - 'docker/Dockerfile.go-hosted'
+      - 'services/hosted/**'
+      - 'services/forum/**'
+      - 'packages/shared-go/**'
+      - 'deploy/docker/Dockerfile.go-hosted'
       - '.github/workflows/deploy-hosted.yml'
-      - 'production-docker-compose-configs/hosted/**'
+      - 'deploy/compose/hosted/**'
 
 jobs:
   deploy:
@@ -31,7 +31,7 @@ jobs:
       - name: Decrypt secrets
         env:
           SOPS_AGE_KEY: ${{ secrets.SOPS_AGE_KEY }}
-        run: sops -d --input-type dotenv --output-type dotenv production-docker-compose-configs/hosted/.env.enc > /tmp/hosted.env
+        run: sops -d --input-type dotenv --output-type dotenv deploy/compose/hosted/.env.enc > /tmp/hosted.env
 
       - name: Install cloudflared
         run: |
@@ -55,5 +55,5 @@ jobs:
       - name: Deploy
         run: |
           scp /tmp/hosted.env hosted-prod:/opt/hosted/.env
-          scp production-docker-compose-configs/hosted/docker-compose.yml hosted-prod:/opt/hosted/docker-compose.yml
+          scp deploy/compose/hosted/docker-compose.yml hosted-prod:/opt/hosted/docker-compose.yml
           ssh hosted-prod "cd /opt/hosted/repo && git fetch origin main && git reset --hard origin/main && cd /opt/hosted && docker compose up -d --build hosted && docker compose ps"

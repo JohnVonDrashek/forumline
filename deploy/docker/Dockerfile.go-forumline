@@ -1,0 +1,54 @@
+# ---- Go build stage ----
+FROM golang:1.26-alpine AS go-build
+
+WORKDIR /app
+
+# Copy shared-go first (local replace directive in go.mod)
+COPY packages/shared-go/ /shared-go/
+
+COPY services/forumline-api/go.mod services/forumline-api/go.sum ./
+RUN go mod download
+
+COPY services/forumline-api/ .
+RUN CGO_ENABLED=0 GOOS=linux go build -o forumline ./cmd/forumline/
+
+# ---- Frontend build stage ----
+FROM node:20-slim AS frontend-build
+
+RUN corepack enable && corepack prepare pnpm@10.6.5 --activate
+
+WORKDIR /app
+
+# Copy workspace root files
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml tsconfig.base.json ./
+COPY .npmrc ./
+
+# Copy all workspace packages (needed for dependency resolution)
+COPY packages/ packages/
+COPY services/forumline-web/ services/forumline-web/
+
+# Install all dependencies
+ARG GITHUB_PACKAGES_TOKEN
+RUN GITHUB_PACKAGES_TOKEN=${GITHUB_PACKAGES_TOKEN} pnpm install --frozen-lockfile --ignore-scripts
+
+# Vite build-time env vars (public keys only — baked into frontend bundle)
+ARG VITE_VAPID_PUBLIC_KEY
+
+# Build packages + forumline-web frontend
+RUN VITE_VAPID_PUBLIC_KEY=${VITE_VAPID_PUBLIC_KEY} \
+    pnpm -r run build
+
+# ---- Production stage ----
+FROM alpine:3.21
+
+RUN apk add --no-cache ca-certificates
+
+WORKDIR /app
+
+COPY --from=go-build /app/forumline .
+COPY --from=frontend-build /app/services/forumline-web/dist ./dist/
+
+ENV PORT=3000
+EXPOSE 3000
+
+CMD ["./forumline"]

@@ -5,10 +5,10 @@ on:
   push:
     branches: [main]
     paths:
-      - 'website/**'
-      - 'docker/Dockerfile.website'
+      - 'services/website/**'
+      - 'deploy/docker/Dockerfile.website'
       - '.github/workflows/deploy-website.yml'
-      - 'production-docker-compose-configs/website/**'
+      - 'deploy/compose/website/**'
 
 jobs:
   deploy:
@@ -40,5 +40,5 @@ jobs:
 
       - name: Deploy
         run: |
-          scp production-docker-compose-configs/website/docker-compose.yml website-prod:/opt/website/docker-compose.yml
+          scp deploy/compose/website/docker-compose.yml website-prod:/opt/website/docker-compose.yml
           ssh website-prod "cd /opt/website/repo && git fetch origin main && git reset --hard origin/main && cd /opt/website && docker compose up -d --build website && docker compose ps"

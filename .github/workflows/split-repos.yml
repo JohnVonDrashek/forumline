@@ -4,8 +4,8 @@ on:
   push:
     branches: [main]
     paths:
-      - 'shared-go/**'
-      - 'forum-server/**'
+      - 'packages/shared-go/**'
+      - 'services/forum/**'
 
   workflow_dispatch:
 
@@ -26,7 +26,7 @@ jobs:
       - name: Check if shared-go changed
         id: changed
         run: |
-          if git diff --name-only HEAD~1 HEAD 2>/dev/null | grep -q '^shared-go/'; then
+          if git diff --name-only HEAD~1 HEAD 2>/dev/null | grep -q '^packages/shared-go/'; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
           else
             echo "changed=false" >> "$GITHUB_OUTPUT"
@@ -63,7 +63,7 @@ jobs:
 
       - uses: actions/setup-go@v5
         with:
-          go-version-file: shared-go/go.mod
+          go-version-file: packages/shared-go/go.mod
           cache: false
 
       - name: Install splitsh-lite
@@ -76,7 +76,7 @@ jobs:
       - name: Split and rewrite
         run: |
           # Split the subtree
-          SPLIT_SHA=$(splitsh-lite --prefix=forum-server)
+          SPLIT_SHA=$(splitsh-lite --prefix=services/forum)
 
           # Create a working branch from the split
           git checkout -b split-result "$SPLIT_SHA"

@@ -2,7 +2,7 @@ services:
   forum:
     build:
       context: .
-      dockerfile: docker/Dockerfile.go-forum
+      dockerfile: deploy/docker/Dockerfile.go-forum
     ports:
       - "3000:3000"
     env_file:
@@ -13,12 +13,12 @@ services:
   forumline:
     build:
       context: .
-      dockerfile: docker/Dockerfile.go-forumline
+      dockerfile: deploy/docker/Dockerfile.go-forumline
       args:
         GITHUB_PACKAGES_TOKEN: ${GITHUB_PACKAGES_TOKEN}
     ports:
       - "3001:3000"
     env_file:
-      - forumline-identity-and-federation-web/.env.local
+      - services/forumline-web/.env.local
     environment:
       - PORT=3000

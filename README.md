@@ -24,14 +24,17 @@ Traditional forums lack real-time interaction. Chat apps lack structure. Forumli
 
 | Directory | Description |
 |-----------|-------------|
-| `example-forum-instances-and-shared-forum-server/forum-a/` | Example forum — web frontend + Go backend entrypoint (Vite + vanilla JS) |
-| `example-forum-instances-and-shared-forum-server/forum/` | Shared Go forum handlers and routes |
-| `example-forum-instances-and-shared-forum-server/shared/` | Shared Go infrastructure (db, auth, SSE, middleware) |
-| `forumline-identity-and-federation-web/` | Forumline app — identity & federation registry (Vite + vanilla TS) |
-| `forumline-identity-and-federation-api/` | Forumline Go API server (`cmd/forumline/`) |
-| `native-applications/` | Native apps (iOS, Android, macOS, Windows, Linux) |
-| `published-npm-packages/protocol/` | Federation types (zero-dependency) |
-| `published-npm-packages/server-sdk/` | Protocol endpoint handler factories |
+| `packages/protocol/` | Federation types (zero-dependency) |
+| `packages/server-sdk/` | Protocol endpoint handler factories |
+| `packages/shared-go/` | Shared Go infrastructure (db, auth, SSE, middleware) |
+| `services/forum/` | Forum server — Go backend + vanilla JS frontend |
+| `services/forumline-api/` | Forumline Go API server (`cmd/forumline/`) |
+| `services/forumline-web/` | Forumline app — identity & federation registry (Vite + vanilla TS) |
+| `services/hosted/` | Multi-tenant hosted forum platform |
+| `services/website/` | Static website (forumline.net) |
+| `apps/` | Native apps (iOS, Android, macOS, Windows, Linux) |
+| `deploy/` | Dockerfiles, compose configs, Terraform |
+| `tools/` | Cloudflare status worker |
 
 ## Quick Start
 
@@ -40,19 +43,19 @@ Traditional forums lack real-time interaction. Chat apps lack structure. Forumli
 pnpm install
 
 # Start local Postgres + GoTrue
-cd forumline-identity-and-federation-api && docker compose up -d
+cd services/forumline-api && docker compose up -d
 
 # Run the forum backend
-cd examples && go run ./forum-a/
+cd services/forum && go run .
 
 # Run the forum frontend
-cd example-forum-instances-and-shared-forum-server/forum-a && pnpm dev
+cd services/forum && pnpm dev
 
 # Run the forumline backend
-cd forumline-identity-and-federation-api && go run ./cmd/forumline/
+cd services/forumline-api && go run ./cmd/forumline/
 
 # Run the forumline frontend
-cd forumline-identity-and-federation-web && pnpm dev
+cd services/forumline-web && pnpm dev
 ```
 
 Both apps require a `.env.local` — see `.env.example` in each directory.
@@ -70,8 +73,8 @@ pnpm format         # Prettier
 
 Both services are self-hosted on Proxmox LXCs with Docker Compose, exposed via Cloudflare Tunnel. Deploys are triggered automatically via GitHub Actions on push to `main`:
 
-- **Forum** → `example-forum-instances-and-shared-forum-server/**` changes trigger [deploy-forum.yml](.github/workflows/deploy-forum.yml)
-- **Forumline App** → `forumline-identity-and-federation-api/**`, `forumline-identity-and-federation-web/**`, or `published-npm-packages/**` changes trigger [deploy-forumline.yml](.github/workflows/deploy-forumline.yml)
+- **Forum** → `services/forum/**` changes trigger [deploy-forum.yml](.github/workflows/deploy-forum.yml)
+- **Forumline App** → `services/forumline-api/**`, `services/forumline-web/**`, or `packages/**` changes trigger [deploy-forumline.yml](.github/workflows/deploy-forumline.yml)
 
 ## License
 
