@@ -123,7 +123,7 @@ export function createForumDiscovery({ forumStore, auth }: ForumDiscoveryOptions
       void fetchRecommended()
       // Refresh forum list (member counts changed)
       void fetchForums()
-    } catch (err) {
+    } catch {
       showToast(`Failed to join ${forum.name}`, 'error')
     }
     state.joiningDomain = null
