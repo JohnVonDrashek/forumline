@@ -10,7 +10,10 @@ ALTER TABLE forumline_forums ADD COLUMN IF NOT EXISTS tags TEXT[] DEFAULT '{}';
 
 -- 2. Add member_count column (denormalized for fast sorting/display)
 ALTER TABLE forumline_forums ADD COLUMN IF NOT EXISTS member_count INTEGER DEFAULT 0 NOT NULL;
-ALTER TABLE forumline_forums ADD CONSTRAINT IF NOT EXISTS member_count_non_negative CHECK (member_count >= 0);
+DO $$ BEGIN
+  ALTER TABLE forumline_forums ADD CONSTRAINT member_count_non_negative CHECK (member_count >= 0);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- 3. Backfill member_count from existing memberships
 UPDATE forumline_forums f
