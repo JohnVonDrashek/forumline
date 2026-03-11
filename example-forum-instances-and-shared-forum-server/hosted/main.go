@@ -251,7 +251,17 @@ func spaHandler(apiHandler http.Handler, store *plat.TenantStore, cache *plat.Si
 		host := strings.Split(r.Host, ":")[0]
 		tenant := store.ByDomain(host)
 		if tenant == nil {
-			http.NotFound(w, r)
+			// Platform domain landing page — returns 200 so uptime monitors see healthy
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			_, _ = fmt.Fprintf(w, `<!DOCTYPE html>
+<html><head><title>Forumline Hosted</title></head>
+<body style="font-family:system-ui;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;background:#111;color:#fff">
+<div style="text-align:center">
+<h1>Forumline Hosted Forum Server</h1>
+<p>Multi-tenant forum hosting platform</p>
+<p style="color:#888"><a href="https://forumline.net" style="color:#6cf">forumline.net</a></p>
+</div>
+</body></html>`)
 			return
 		}
 
