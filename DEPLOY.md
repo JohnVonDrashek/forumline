@@ -19,9 +19,34 @@ All deploy via GitHub Actions workflows:
 Required GitHub secrets:
 - `FORUM_SSH_KEY` — SSH key for production servers
 - `SOPS_AGE_KEY` — age key for decrypting .env.enc files
+- `CF_ACCESS_CLIENT_ID` — Cloudflare Access service token client ID
+- `CF_ACCESS_CLIENT_SECRET` — Cloudflare Access service token client secret
 - `GITHUB_PACKAGES_TOKEN` (automatically provided)
 
 **Do NOT deploy manually.**
+
+## Cloudflare Tunnel (Terraform)
+
+Tunnel ingress and Zero Trust Access policies managed via OpenTofu in `terraform/`. Config lives in Cloudflare (remotely-managed). `cloudflared` runs with `--token` on `forum-prod` (CT 100) — no local config file.
+
+**Managed resources:** tunnel ingress rules, Access applications for SSH endpoints, service token for GitHub Actions deploys, developer email allow policies.
+
+**Changing tunnel routes:**
+
+```bash
+cd terraform
+AWS_ACCESS_KEY_ID=$(security find-generic-password -a access-key-id -s cloudflare-r2-terraform-state -w) \
+AWS_SECRET_ACCESS_KEY=$(security find-generic-password -a secret-access-key -s cloudflare-r2-terraform-state -w) \
+TF_VAR_cloudflare_api_token=$(security find-generic-password -a api-token -s cloudflare-tunnel-terraform -w) \
+tofu plan -var-file=prod.tfvars    # review changes
+tofu apply -var-file=prod.tfvars   # apply — takes effect immediately, no restart
+```
+
+**State**: stored in Cloudflare R2 (`forumline-terraform-state` bucket).
+
+**Rule ordering**: specific hostnames MUST come before `*.forumline.net` wildcard, or SSH routes break.
+
+**Do NOT run `tofu destroy`** — `prevent_destroy` blocks it, but don't try to work around it.
 
 ## LXC Setup
 
@@ -40,9 +65,7 @@ Each service runs on a Proxmox LXC with Docker, SSH access via Cloudflare Tunnel
    git clone https://github.com/forumline/forumline.git /opt/website/repo
    ```
 4. Add the deploy SSH public key to `/root/.ssh/authorized_keys`
-5. Configure Cloudflare Tunnel routes:
-   - `www-ssh.forumline.net` -> `ssh://localhost:22` (SSH access for deploys)
-   - `forumline.net` -> `http://localhost:3000` (public website)
+5. Add tunnel routes in `terraform/tunnel.tf` and apply (see above)
 6. Test the deploy:
    ```bash
    cd /opt/website/repo && git pull origin main

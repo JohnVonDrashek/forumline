@@ -1,0 +1,13 @@
+# Terraform state (stored locally, not in repo)
+*.tfstate
+*.tfstate.backup
+.terraform/
+
+# Variable files with secrets
+*.auto.tfvars
+terraform.tfvars
+prod.tfvars
+
+# Crash logs
+crash.log
+crash.*.log
