@@ -238,6 +238,11 @@ export function createSettingsPage({ forumlineSession, forumStore, forumlineStor
   })
 
   let siteManagerChild: { el: HTMLElement; destroy: () => void } | null = null
+  let displayNameValueEl: HTMLElement | null = null
+  let statusValueEl: HTMLElement | null = null
+  let profileNameEl: HTMLElement | null = null
+  let statusSelectEl: HTMLSelectElement | null = null
+  let onlineStatusSectionEl: HTMLElement | null = null
 
   const el = div({ class: 'settings-page' }) as HTMLElement
   const settingsWrapper = div() as HTMLElement
@@ -294,7 +299,7 @@ export function createSettingsPage({ forumlineSession, forumStore, forumlineStor
       loading: 'lazy',
     }) as HTMLImageElement
 
-    const profileNameEl = span({ class: 'settings-profile-name' }) as HTMLElement
+    profileNameEl = span({ class: 'settings-profile-name' }) as HTMLElement
     profileNameEl.textContent = settings.displayName || userEmail
 
     const profileSection = settingsSection('Profile', [
@@ -307,7 +312,7 @@ export function createSettingsPage({ forumlineSession, forumStore, forumlineStor
             placeholder: 'Enter display name',
             onSave: (v) => {
               settings.displayName = v
-              profileNameEl.textContent = v || userEmail
+              if (profileNameEl) profileNameEl.textContent = v || userEmail
               void updateProfile({ username: v })
             },
           }),
@@ -320,35 +325,45 @@ export function createSettingsPage({ forumlineSession, forumStore, forumlineStor
         ),
         span({ class: 'settings-row-chevron' }, '\u203A'),
       ) as HTMLElement,
-      tappableRow('Display Name', settings.displayName || userEmail, () => {
-        showEditModal({
-          title: 'Edit Display Name',
-          value: settings.displayName,
-          placeholder: 'Enter display name',
-          onSave: (v) => {
-            settings.displayName = v
-            profileNameEl.textContent = v || userEmail
-            void updateProfile({ username: v })
-          },
+      (() => {
+        const row = tappableRow('Display Name', settings.displayName || userEmail, () => {
+          showEditModal({
+            title: 'Edit Display Name',
+            value: settings.displayName,
+            placeholder: 'Enter display name',
+            onSave: (v) => {
+              settings.displayName = v
+              if (profileNameEl) profileNameEl.textContent = v || userEmail
+              if (displayNameValueEl) displayNameValueEl.textContent = v || userEmail
+              void updateProfile({ username: v })
+            },
+          })
         })
-      }),
-      tappableRow('Status', settings.statusMessage || 'Set a status\u2026', () => {
-        showEditModal({
-          title: 'Edit Status',
-          value: settings.statusMessage,
-          placeholder: "What's on your mind?",
-          onSave: (v) => {
-            settings.statusMessage = v
-            void updateProfile({ status_message: v })
-          },
+        displayNameValueEl = row.querySelector('.settings-row-value') as HTMLElement
+        return row
+      })(),
+      (() => {
+        const row = tappableRow('Status', settings.statusMessage || 'Set a status\u2026', () => {
+          showEditModal({
+            title: 'Edit Status',
+            value: settings.statusMessage,
+            placeholder: "What's on your mind?",
+            onSave: (v) => {
+              settings.statusMessage = v
+              if (statusValueEl) statusValueEl.textContent = v || 'Set a status\u2026'
+              void updateProfile({ status_message: v })
+            },
+          })
         })
-      }),
+        statusValueEl = row.querySelector('.settings-row-value') as HTMLElement
+        return row
+      })(),
       settingsRow('Email', userEmail),
     ])
     content.appendChild(profileSection)
 
     // ---- Online Status section ----
-    const statusSelect = select(
+    statusSelectEl = select(
       {
         class: 'settings-select',
         onchange: (e: Event) => {
@@ -360,14 +375,14 @@ export function createSettingsPage({ forumlineSession, forumStore, forumlineStor
       option({ value: 'offline' }, 'Appear Offline'),
     ) as HTMLSelectElement
 
-    const onlineStatusSection = settingsSection('Online Status', [
-      settingsRow('Status', statusSelect),
+    onlineStatusSectionEl = settingsSection('Online Status', [
+      settingsRow('Status', statusSelectEl),
       settingsRow('Show Online Status', createToggle({
         checked: true,
         onChange: (v) => void updateProfile({ show_online_status: v }),
       })),
     ], "When hidden, other users won\u2019t see when you\u2019re online.")
-    content.appendChild(onlineStatusSection)
+    content.appendChild(onlineStatusSectionEl)
 
     // ---- Notifications section ----
     const notificationsSection = settingsSection('Notifications', [
@@ -697,12 +712,29 @@ export function createSettingsPage({ forumlineSession, forumStore, forumlineStor
       if (!session) return
       const res = await fetch('/api/identity', { headers: { Authorization: `Bearer ${session.access_token}` } })
       if (!res.ok) return
-      const data = await res.json() as { avatar_url?: string; username?: string; status_message?: string }
-      if (data.avatar_url) settings.avatarUrl = data.avatar_url
-      if (data.username) {
-        settings.displayName = data.username
+      const data = await res.json() as {
+        avatar_url?: string; username?: string; display_name?: string;
+        status_message?: string; online_status?: string; show_online_status?: boolean
       }
-      if (data.status_message) settings.statusMessage = data.status_message
+      if (data.avatar_url) settings.avatarUrl = data.avatar_url
+      if (data.display_name) {
+        settings.displayName = data.display_name
+        if (profileNameEl) profileNameEl.textContent = data.display_name
+        if (displayNameValueEl) displayNameValueEl.textContent = data.display_name
+      } else if (data.username) {
+        settings.displayName = data.username
+        if (profileNameEl) profileNameEl.textContent = data.username
+        if (displayNameValueEl) displayNameValueEl.textContent = data.username
+      }
+      if (data.status_message !== undefined) {
+        settings.statusMessage = data.status_message
+        if (statusValueEl) statusValueEl.textContent = data.status_message || 'Set a status\u2026'
+      }
+      if (data.online_status && statusSelectEl) statusSelectEl.value = data.online_status
+      if (data.show_online_status !== undefined && onlineStatusSectionEl) {
+        const toggle = onlineStatusSectionEl.querySelector<HTMLInputElement>('input[type="checkbox"]')
+        if (toggle) toggle.checked = data.show_online_status
+      }
     } catch { /* ignore */ }
   }
 

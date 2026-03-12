@@ -996,11 +996,13 @@ func (h *Handlers) HandleGetIdentity(w http.ResponseWriter, r *http.Request) {
 	userID := shared.UserIDFromContext(r.Context())
 	ctx := r.Context()
 
-	var username, displayName string
+	var username, displayName, statusMessage, onlineStatus string
 	var avatarURL, bio *string
+	var showOnlineStatus bool
 	err := h.Pool.QueryRow(ctx,
-		`SELECT username, display_name, avatar_url, bio FROM forumline_profiles WHERE id = $1`, userID,
-	).Scan(&username, &displayName, &avatarURL, &bio)
+		`SELECT username, display_name, avatar_url, bio, status_message, online_status, show_online_status
+		 FROM forumline_profiles WHERE id = $1`, userID,
+	).Scan(&username, &displayName, &avatarURL, &bio, &statusMessage, &onlineStatus, &showOnlineStatus)
 
 	if err != nil {
 		writeJSON(w, http.StatusNotFound, map[string]string{"error": "Profile not found"})
@@ -1008,16 +1010,116 @@ func (h *Handlers) HandleGetIdentity(w http.ResponseWriter, r *http.Request) {
 	}
 
 	result := map[string]interface{}{
-		"forumline_id": userID,
-		"username":     username,
-		"display_name": displayName,
-		"avatar_url":   stringOrEmpty(avatarURL),
+		"forumline_id":       userID,
+		"username":           username,
+		"display_name":       displayName,
+		"avatar_url":         stringOrEmpty(avatarURL),
+		"status_message":     statusMessage,
+		"online_status":      onlineStatus,
+		"show_online_status": showOnlineStatus,
 	}
 	if bio != nil && *bio != "" {
 		result["bio"] = *bio
 	}
 
 	writeJSON(w, http.StatusOK, result)
+}
+
+// HandleUpdateIdentity updates the authenticated user's profile fields.
+func (h *Handlers) HandleUpdateIdentity(w http.ResponseWriter, r *http.Request) {
+	userID := shared.UserIDFromContext(r.Context())
+	ctx := r.Context()
+
+	var body struct {
+		Username         *string `json:"username"`
+		StatusMessage    *string `json:"status_message"`
+		OnlineStatus     *string `json:"online_status"`
+		ShowOnlineStatus *bool   `json:"show_online_status"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "Invalid request body"})
+		return
+	}
+
+	// Build dynamic SET clause from provided fields
+	sets := []string{}
+	args := []interface{}{}
+	argIdx := 1
+
+	if body.Username != nil {
+		name := strings.TrimSpace(*body.Username)
+		if name == "" || utf8.RuneCountInString(name) > 50 {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "Display name must be 1-50 characters"})
+			return
+		}
+		sets = append(sets, fmt.Sprintf("display_name = $%d", argIdx))
+		args = append(args, name)
+		argIdx++
+	}
+
+	if body.StatusMessage != nil {
+		msg := strings.TrimSpace(*body.StatusMessage)
+		if utf8.RuneCountInString(msg) > 100 {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "Status message must be 100 characters or fewer"})
+			return
+		}
+		sets = append(sets, fmt.Sprintf("status_message = $%d", argIdx))
+		args = append(args, msg)
+		argIdx++
+	}
+
+	if body.OnlineStatus != nil {
+		switch *body.OnlineStatus {
+		case "online", "away", "offline":
+			// valid
+		default:
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "online_status must be online, away, or offline"})
+			return
+		}
+		sets = append(sets, fmt.Sprintf("online_status = $%d", argIdx))
+		args = append(args, *body.OnlineStatus)
+		argIdx++
+	}
+
+	if body.ShowOnlineStatus != nil {
+		sets = append(sets, fmt.Sprintf("show_online_status = $%d", argIdx))
+		args = append(args, *body.ShowOnlineStatus)
+		argIdx++
+	}
+
+	if len(sets) == 0 {
+		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+		return
+	}
+
+	query := fmt.Sprintf("UPDATE forumline_profiles SET %s WHERE id = $%d", strings.Join(sets, ", "), argIdx)
+	args = append(args, userID)
+
+	_, err := h.Pool.Exec(ctx, query, args...)
+	if err != nil {
+		log.Printf("[Identity] HandleUpdateIdentity error: %v", err)
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "Failed to update profile"})
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+}
+
+// HandleDeleteIdentity deletes the authenticated user's account.
+func (h *Handlers) HandleDeleteIdentity(w http.ResponseWriter, r *http.Request) {
+	userID := shared.UserIDFromContext(r.Context())
+	ctx := r.Context()
+
+	// Delete the user from GoTrue — the ON DELETE CASCADE on forumline_profiles
+	// will clean up profiles, memberships, conversations, push subs, etc.
+	_, err := h.Pool.Exec(ctx, `DELETE FROM auth.users WHERE id = $1`, userID)
+	if err != nil {
+		log.Printf("[Identity] HandleDeleteIdentity error: %v", err)
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "Failed to delete account"})
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]string{"status": "deleted"})
 }
 
 // --- Profile Search ---

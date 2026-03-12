@@ -48,6 +48,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      gotrue:
+        condition: service_started
     volumes:
       - ./init.sql:/scripts/01-forumline.sql:ro
       - ../hosted/init-forum-tables.sql:/scripts/02-forum-tables.sql:ro

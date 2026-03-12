@@ -10,6 +10,9 @@ CREATE TABLE IF NOT EXISTS forumline_profiles (
   display_name TEXT NOT NULL,
   avatar_url TEXT,
   bio TEXT,
+  status_message TEXT DEFAULT '' NOT NULL,
+  online_status TEXT DEFAULT 'online' NOT NULL,
+  show_online_status BOOLEAN DEFAULT true NOT NULL,
   created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
   updated_at TIMESTAMPTZ DEFAULT now() NOT NULL
 );

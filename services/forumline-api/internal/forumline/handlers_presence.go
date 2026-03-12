@@ -78,6 +78,11 @@ func (h *Handlers) HandlePresenceHeartbeat(w http.ResponseWriter, r *http.Reques
 }
 
 // HandlePresenceStatus returns online status for a list of user IDs.
+// Respects each user's online_status and show_online_status preferences:
+//   - show_online_status=false → always report as offline
+//   - online_status='offline' → always report as offline (appear offline)
+//   - online_status='away' → always report as offline (manual away)
+//   - online_status='online' → report actual heartbeat status (as-is)
 func (h *Handlers) HandlePresenceStatus(w http.ResponseWriter, r *http.Request) {
 	idsParam := r.URL.Query().Get("userIds")
 	if idsParam == "" {
@@ -90,6 +95,28 @@ func (h *Handlers) HandlePresenceStatus(w http.ResponseWriter, r *http.Request) 
 		userIDs = userIDs[:200]
 	}
 
+	// Get heartbeat-based status
 	status := h.Presence.OnlineStatusBatch(userIDs)
+
+	// Apply user preferences — query online_status and show_online_status
+	rows, err := h.Pool.Query(r.Context(),
+		`SELECT id::text, online_status, show_online_status
+		 FROM forumline_profiles
+		 WHERE id = ANY($1::uuid[])`, userIDs,
+	)
+	if err == nil {
+		defer rows.Close()
+		for rows.Next() {
+			var uid, onlineStatus string
+			var showOnline bool
+			if err := rows.Scan(&uid, &onlineStatus, &showOnline); err != nil {
+				continue
+			}
+			if !showOnline || onlineStatus == "offline" || onlineStatus == "away" {
+				status[uid] = false
+			}
+		}
+	}
+
 	writeJSON(w, http.StatusOK, status)
 }

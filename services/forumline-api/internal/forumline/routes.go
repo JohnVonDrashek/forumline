@@ -96,6 +96,8 @@ func NewRouter(pool *shared.ObservablePool, sseHub *shared.SSEHub) *http.ServeMu
 
 	// Identity (authenticated)
 	mux.Handle("GET /api/identity", use(h.HandleGetIdentity, auth))
+	mux.Handle("PUT /api/identity", use(h.HandleUpdateIdentity, auth))
+	mux.Handle("DELETE /api/identity", use(h.HandleDeleteIdentity, auth))
 
 	// Profile search (authenticated)
 	mux.Handle("GET /api/profiles/search", use(h.HandleSearchProfiles, auth))
