@@ -623,6 +623,120 @@ func (h *Handlers) HandleRegisterForum(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// --- Owner Forum Management ---
+
+func (h *Handlers) HandleListOwnedForums(w http.ResponseWriter, r *http.Request) {
+	userID := shared.UserIDFromContext(r.Context())
+	ctx := r.Context()
+
+	rows, err := h.Pool.Query(ctx,
+		`SELECT id, domain, name, icon_url, api_base, web_base, approved,
+		        member_count, last_seen_at, consecutive_failures, created_at
+		 FROM forumline_forums WHERE owner_id = $1
+		 ORDER BY created_at DESC`, userID,
+	)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "Failed to fetch owned forums"})
+		return
+	}
+	defer rows.Close()
+
+	var forums []map[string]interface{}
+	for rows.Next() {
+		var id, domain, name, apiBase, webBase string
+		var iconURL *string
+		var approved bool
+		var memberCount, consecutiveFailures int
+		var lastSeenAt *time.Time
+		var createdAt time.Time
+
+		if err := rows.Scan(&id, &domain, &name, &iconURL, &apiBase, &webBase, &approved,
+			&memberCount, &lastSeenAt, &consecutiveFailures, &createdAt); err != nil {
+			continue
+		}
+		forum := map[string]interface{}{
+			"id":                   id,
+			"domain":               domain,
+			"name":                 name,
+			"icon_url":             iconURL,
+			"api_base":             apiBase,
+			"web_base":             webBase,
+			"approved":             approved,
+			"member_count":         memberCount,
+			"consecutive_failures": consecutiveFailures,
+			"created_at":           createdAt.Format(time.RFC3339),
+		}
+		if lastSeenAt != nil {
+			forum["last_seen_at"] = lastSeenAt.Format(time.RFC3339)
+		}
+		forums = append(forums, forum)
+	}
+
+	if forums == nil {
+		forums = []map[string]interface{}{}
+	}
+
+	writeJSON(w, http.StatusOK, forums)
+}
+
+func (h *Handlers) HandleDeleteForum(w http.ResponseWriter, r *http.Request) {
+	userID := shared.UserIDFromContext(r.Context())
+	ctx := r.Context()
+
+	var body struct {
+		ForumDomain string `json:"forum_domain"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request body"})
+		return
+	}
+	if body.ForumDomain == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "Missing forum_domain"})
+		return
+	}
+
+	forumID := getForumIDByDomain(ctx, h.Pool.Pool, body.ForumDomain)
+	if forumID == "" {
+		writeJSON(w, http.StatusNotFound, map[string]string{"error": "Forum not found"})
+		return
+	}
+
+	// Verify ownership
+	var ownerID *string
+	if err := h.Pool.QueryRow(ctx,
+		`SELECT owner_id FROM forumline_forums WHERE id = $1`, forumID,
+	).Scan(&ownerID); err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "Failed to verify ownership"})
+		return
+	}
+	if ownerID == nil || *ownerID != userID {
+		writeJSON(w, http.StatusForbidden, map[string]string{"error": "You are not the owner of this forum"})
+		return
+	}
+
+	// Count members for response
+	var memberCount int
+	_ = h.Pool.QueryRow(ctx,
+		`SELECT COUNT(*) FROM forumline_memberships WHERE forum_id = $1`, forumID,
+	).Scan(&memberCount)
+
+	// Delete — cascades to memberships, OAuth clients, auth codes
+	tag, err := h.Pool.Exec(ctx,
+		`DELETE FROM forumline_forums WHERE id = $1 AND owner_id = $2`, forumID, userID,
+	)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "Failed to delete forum"})
+		return
+	}
+	if tag.RowsAffected() == 0 {
+		writeJSON(w, http.StatusNotFound, map[string]string{"error": "Forum not found or not owned by you"})
+		return
+	}
+
+	log.Printf("[Forums] Forum deleted: domain=%s id=%s owner=%s members_removed=%d", body.ForumDomain, forumID, userID, memberCount)
+	writeJSON(w, http.StatusOK, map[string]interface{}{"ok": true, "members_removed": memberCount})
+}
+
 // --- Screenshot Update (service key auth) ---
 
 func (h *Handlers) HandleUpdateScreenshot(w http.ResponseWriter, r *http.Request) {
@@ -667,6 +781,169 @@ func (h *Handlers) HandleUpdateScreenshot(w http.ResponseWriter, r *http.Request
 	}
 
 	writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
+}
+
+// --- Forum Health (service key auth) ---
+
+func (h *Handlers) HandleUpdateHealth(w http.ResponseWriter, r *http.Request) {
+	authHeader := r.Header.Get("Authorization")
+	if !strings.HasPrefix(authHeader, "Bearer ") {
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "missing authorization"})
+		return
+	}
+	token := strings.TrimPrefix(authHeader, "Bearer ")
+	serviceKey := os.Getenv("FORUMLINE_SERVICE_ROLE_KEY")
+	if serviceKey == "" || token != serviceKey {
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "invalid authorization"})
+		return
+	}
+
+	var body struct {
+		Domain  string `json:"domain"`
+		Healthy bool   `json:"healthy"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request body"})
+		return
+	}
+	if body.Domain == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "domain is required"})
+		return
+	}
+
+	ctx := r.Context()
+
+	if body.Healthy {
+		tag, err := h.Pool.Exec(ctx,
+			`UPDATE forumline_forums SET last_seen_at = now(), consecutive_failures = 0
+			 WHERE domain = $1`, body.Domain,
+		)
+		if err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to update health"})
+			return
+		}
+		if tag.RowsAffected() == 0 {
+			writeJSON(w, http.StatusNotFound, map[string]string{"error": "forum not found"})
+			return
+		}
+
+		// Re-approve if it was delisted due to failures
+		_, _ = h.Pool.Exec(ctx,
+			`UPDATE forumline_forums SET approved = true
+			 WHERE domain = $1 AND approved = false AND consecutive_failures = 0
+			 AND owner_id IS NOT NULL`, body.Domain,
+		)
+
+		writeJSON(w, http.StatusOK, map[string]interface{}{"ok": true, "action": "healthy"})
+		return
+	}
+
+	// Unhealthy: increment failures and check thresholds
+	var consecutiveFailures int
+	var ownerID *string
+	err := h.Pool.QueryRow(ctx,
+		`UPDATE forumline_forums SET consecutive_failures = consecutive_failures + 1
+		 WHERE domain = $1
+		 RETURNING consecutive_failures, owner_id`, body.Domain,
+	).Scan(&consecutiveFailures, &ownerID)
+	if err == pgx.ErrNoRows {
+		writeJSON(w, http.StatusNotFound, map[string]string{"error": "forum not found"})
+		return
+	}
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to update health"})
+		return
+	}
+
+	action := "failure_recorded"
+
+	// 3 consecutive failures: delist from public directory
+	if consecutiveFailures >= 3 {
+		tag, _ := h.Pool.Exec(ctx,
+			`UPDATE forumline_forums SET approved = false WHERE domain = $1 AND approved = true`, body.Domain,
+		)
+		if tag.RowsAffected() > 0 {
+			log.Printf("[Health] Forum delisted: domain=%s failures=%d", body.Domain, consecutiveFailures)
+			action = "delisted"
+		}
+	}
+
+	// 7 consecutive failures with no owner: auto-delete
+	if consecutiveFailures >= 7 && ownerID == nil {
+		tag, _ := h.Pool.Exec(ctx,
+			`DELETE FROM forumline_forums WHERE domain = $1 AND owner_id IS NULL`, body.Domain,
+		)
+		if tag.RowsAffected() > 0 {
+			log.Printf("[Health] Unowned forum auto-deleted: domain=%s failures=%d", body.Domain, consecutiveFailures)
+			action = "auto_deleted"
+		}
+	}
+
+	writeJSON(w, http.StatusOK, map[string]interface{}{"ok": true, "action": action, "consecutive_failures": consecutiveFailures})
+}
+
+// HandleListAllForums returns all forums (regardless of approval status) for internal use.
+func (h *Handlers) HandleListAllForums(w http.ResponseWriter, r *http.Request) {
+	authHeader := r.Header.Get("Authorization")
+	if !strings.HasPrefix(authHeader, "Bearer ") {
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "missing authorization"})
+		return
+	}
+	token := strings.TrimPrefix(authHeader, "Bearer ")
+	serviceKey := os.Getenv("FORUMLINE_SERVICE_ROLE_KEY")
+	if serviceKey == "" || token != serviceKey {
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "invalid authorization"})
+		return
+	}
+
+	ctx := r.Context()
+	rows, err := h.Pool.Query(ctx,
+		`SELECT id, domain, name, icon_url, api_base, web_base, capabilities, approved, owner_id,
+		        last_seen_at, consecutive_failures
+		 FROM forumline_forums ORDER BY domain`,
+	)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "Failed to fetch forums"})
+		return
+	}
+	defer rows.Close()
+
+	var forums []map[string]interface{}
+	for rows.Next() {
+		var id, domain, name, apiBase, webBase string
+		var iconURL, ownerID *string
+		var capabilities []string
+		var approved bool
+		var lastSeenAt *time.Time
+		var consecutiveFailures int
+
+		if err := rows.Scan(&id, &domain, &name, &iconURL, &apiBase, &webBase,
+			&capabilities, &approved, &ownerID, &lastSeenAt, &consecutiveFailures); err != nil {
+			continue
+		}
+		forum := map[string]interface{}{
+			"id":                   id,
+			"domain":               domain,
+			"name":                 name,
+			"icon_url":             iconURL,
+			"api_base":             apiBase,
+			"web_base":             webBase,
+			"capabilities":         capabilities,
+			"approved":             approved,
+			"has_owner":            ownerID != nil,
+			"consecutive_failures": consecutiveFailures,
+		}
+		if lastSeenAt != nil {
+			forum["last_seen_at"] = lastSeenAt.Format(time.RFC3339)
+		}
+		forums = append(forums, forum)
+	}
+
+	if forums == nil {
+		forums = []map[string]interface{}{}
+	}
+
+	writeJSON(w, http.StatusOK, forums)
 }
 
 // --- Identity ---

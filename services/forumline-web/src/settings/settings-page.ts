@@ -24,7 +24,7 @@ import { createSiteManager } from './site-manager.js'
 import { tags, html, vanX } from '../shared/dom.js'
 import { createAvatar, createButton, createCard } from '../shared/ui.js'
 
-const { div, h1, h2, p } = tags
+const { div, h1, h2, p, span } = tags
 
 interface SettingsPageOptions {
   forumlineSession: ForumlineSession | null
@@ -35,10 +35,25 @@ interface SettingsPageOptions {
 }
 
 export function createSettingsPage({ forumlineSession, forumStore, forumlineStore, auth, onClose }: SettingsPageOptions) {
+  interface OwnedForum {
+    id: string
+    domain: string
+    name: string
+    icon_url: string | null
+    api_base: string
+    web_base: string
+    approved: boolean
+    member_count: number
+    last_seen_at: string | null
+    consecutive_failures: number
+    created_at: string
+  }
+
   const settings = vanX.reactive({
     memberships: [] as { forum_domain: string; notifications_muted: boolean }[],
     avatarUrl: null as string | null,
     ownedSites: {} as Record<string, string>, // domain -> slug
+    ownedForums: [] as OwnedForum[],
   })
 
   let siteManagerChild: { el: HTMLElement; destroy: () => void } | null = null
@@ -186,6 +201,115 @@ export function createSettingsPage({ forumlineSession, forumStore, forumlineStor
   forumsCard.appendChild(reactiveForumList)
   content.appendChild(forumsCard)
 
+  // Owned forums card
+  function healthIndicator(failures: number): HTMLElement {
+    let color: string, label: string
+    if (failures === 0) {
+      color = '#22c55e'; label = 'Healthy'
+    } else if (failures < 3) {
+      color = '#eab308'; label = 'Unreachable'
+    } else {
+      color = '#ef4444'; label = 'Offline (delisted)'
+    }
+    return span(
+      { class: 'text-sm', style: `display:inline-flex;align-items:center;gap:0.375rem` },
+      span({ style: `width:8px;height:8px;border-radius:50%;background:${color};display:inline-block` }) as HTMLElement,
+      label,
+    ) as HTMLElement
+  }
+
+  function buildOwnedForumRow(forum: OwnedForum) {
+    const row = div({ class: 'settings-forum-row' }) as HTMLElement
+
+    if (forum.icon_url) {
+      const iconSrc = forum.icon_url.startsWith('/') ? `${forum.web_base}${forum.icon_url}` : forum.icon_url
+      const iconImg = tags.img({ src: iconSrc, alt: forum.name, class: 'forum-card__icon', onerror: () => { iconImg.style.display = 'none' } }) as HTMLImageElement
+      row.appendChild(iconImg)
+    } else {
+      row.appendChild(div({ class: 'forum-card__icon-fallback' }, forum.name[0].toUpperCase()) as HTMLElement)
+    }
+
+    const info = div({ class: 'flex-1' },
+      p({ class: 'font-medium text-white' }, forum.name),
+      div({ style: 'display:flex;align-items:center;gap:0.75rem' },
+        p({ class: 'text-sm text-muted' }, forum.domain),
+        healthIndicator(forum.consecutive_failures),
+        !forum.approved
+          ? span({ class: 'text-sm', style: 'color:#ef4444' }, 'Delisted')
+          : span() as HTMLElement,
+      ),
+      p({ class: 'text-sm text-faint' }, `${forum.member_count} member${forum.member_count !== 1 ? 's' : ''}`),
+    ) as HTMLElement
+    row.appendChild(info)
+
+    const deleteBtn = createButton({
+      text: 'Delete',
+      variant: 'danger',
+      className: 'text-sm',
+      onClick: () => void handleDeleteOwnedForum(forum, deleteBtn),
+    })
+    row.appendChild(deleteBtn)
+
+    return row
+  }
+
+  // Owned forums card — single reactive binding handles both visibility and content
+  const ownedForumsWrapper = div(
+    () => {
+      const forums = settings.ownedForums
+      if (forums.length === 0) return div() as HTMLElement
+      const card = createCard()
+      card.appendChild(h2({ class: 'text-lg font-semibold text-white' }, 'Your Forums') as HTMLElement)
+      card.appendChild(p({ class: 'text-sm text-muted mt-sm' }, 'Forums you have registered on the network') as HTMLElement)
+      const container = div({ style: 'display:flex;flex-direction:column;gap:0.5rem;margin-top:1rem' }) as HTMLElement
+      forums.forEach(f => container.appendChild(buildOwnedForumRow(f)))
+      card.appendChild(container)
+      return card
+    },
+  ) as HTMLElement
+  content.appendChild(ownedForumsWrapper)
+
+  async function handleDeleteOwnedForum(forum: OwnedForum, btn: HTMLElement) {
+    const confirmed = window.confirm(
+      `Delete ${forum.name}?\n\nThis will remove the forum from Forumline and disconnect all ${forum.member_count} member${forum.member_count !== 1 ? 's' : ''}. This cannot be undone.`,
+    )
+    if (!confirmed) return
+
+    const btnEl = btn as HTMLButtonElement
+    btnEl.disabled = true
+    btnEl.textContent = 'Deleting...'
+
+    try {
+      const session = auth.getSession()
+      if (!session) throw new Error('No session')
+      const res = await fetch('/api/forums', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ forum_domain: forum.domain }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error((data as { error?: string }).error || 'Failed to delete forum')
+      }
+      // Re-fetch owned forums list
+      void fetchOwnedForums()
+    } catch (err) {
+      btnEl.disabled = false
+      btnEl.textContent = 'Delete'
+      alert(`Failed to delete forum: ${(err as Error).message}`)
+    }
+  }
+
+  async function fetchOwnedForums() {
+    try {
+      const session = auth.getSession()
+      if (!session) return
+      const res = await fetch('/api/forums/owned', { headers: { Authorization: `Bearer ${session.access_token}` } })
+      if (!res.ok) return
+      vanX.replace(settings.ownedForums, await res.json())
+    } catch { /* non-critical */ }
+  }
+
   async function fetchMemberships() {
     try {
       const session = auth.getSession()
@@ -256,6 +380,7 @@ export function createSettingsPage({ forumlineSession, forumStore, forumlineStor
   void fetchMemberships()
   void fetchAvatar()
   void fetchOwnedSites()
+  void fetchOwnedForums()
 
   return {
     el,

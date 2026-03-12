@@ -75,14 +75,18 @@ func NewRouter(pool *shared.ObservablePool, sseHub *shared.SSEHub) *http.ServeMu
 	mux.Handle("POST /api/dms/{userId}/read", use(h.HandleLegacyMarkRead, auth))
 	mux.HandleFunc("GET /api/dms/{userId}/stream", h.HandleDMStream)
 
-	// Forums (public GET, authenticated POST)
+	// Forums (public GET, authenticated POST/DELETE)
 	mux.HandleFunc("GET /api/forums", h.HandleListForums)
 	mux.HandleFunc("GET /api/forums/tags", h.HandleListForumTags)
 	mux.Handle("GET /api/forums/recommended", use(h.HandleRecommendedForums, auth))
+	mux.Handle("GET /api/forums/owned", use(h.HandleListOwnedForums, auth))
 	mux.Handle("POST /api/forums", use(h.HandleRegisterForum, auth))
+	mux.Handle("DELETE /api/forums", use(h.HandleDeleteForum, auth))
 
-	// Screenshot update (service key auth)
+	// Forum admin (service key auth)
 	mux.HandleFunc("PUT /api/forums/screenshot", h.HandleUpdateScreenshot)
+	mux.HandleFunc("PUT /api/forums/health", h.HandleUpdateHealth)
+	mux.HandleFunc("GET /api/forums/all", h.HandleListAllForums)
 
 	// Identity (authenticated)
 	mux.Handle("GET /api/identity", use(h.HandleGetIdentity, auth))

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Captures screenshots of all forums in the directory and uploads to R2.
- * Updates screenshot_url via the Forumline identity API.
+ * Updates screenshot_url and reports health status via the Forumline API.
  *
  * Usage:
  *   node .github/scripts/update-forum-screenshots.js
@@ -29,18 +29,38 @@ const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL
 
 const log = (msg) => process.stderr.write(msg + '\n')
 
+const serviceHeaders = {
+  'Content-Type': 'application/json',
+  'Authorization': `Bearer ${SERVICE_KEY}`,
+}
+
 async function updateScreenshotViaAPI(domain, screenshotUrl) {
   const res = await fetch(`${API_URL}/api/forums/screenshot`, {
     method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${SERVICE_KEY}`,
-    },
+    headers: serviceHeaders,
     body: JSON.stringify({ domain, screenshot_url: screenshotUrl }),
   })
   if (!res.ok) {
     const text = await res.text()
     throw new Error(`API returned ${res.status}: ${text}`)
+  }
+}
+
+async function reportHealth(domain, healthy) {
+  try {
+    const res = await fetch(`${API_URL}/api/forums/health`, {
+      method: 'PUT',
+      headers: serviceHeaders,
+      body: JSON.stringify({ domain, healthy }),
+    })
+    if (!res.ok) {
+      log(`  Health report failed for ${domain}: ${res.status}`)
+      return null
+    }
+    return await res.json()
+  } catch (err) {
+    log(`  Health report error for ${domain}: ${err.message}`)
+    return null
   }
 }
 
@@ -54,11 +74,18 @@ async function main() {
     process.exit(1)
   }
 
-  log(`Fetching forums from ${API_URL}/api/forums...`)
-  const res = await fetch(`${API_URL}/api/forums`)
-  const forums = await res.json()
-  const realForums = forums.filter(f => f.capabilities && f.capabilities.length > 0)
-  log(`Found ${realForums.length} forums to screenshot`)
+  // Fetch ALL forums (including unapproved) so we can health-check everything
+  log(`Fetching all forums from ${API_URL}/api/forums/all...`)
+  const res = await fetch(`${API_URL}/api/forums/all`, {
+    headers: { 'Authorization': `Bearer ${SERVICE_KEY}` },
+  })
+  if (!res.ok) {
+    log(`Failed to fetch forums: ${res.status}`)
+    process.exit(1)
+  }
+  const allForums = await res.json()
+  const screenshotForums = allForums.filter(f => f.capabilities && f.capabilities.length > 0)
+  log(`Found ${allForums.length} total forums, ${screenshotForums.length} with capabilities to screenshot`)
 
   const s3 = new S3Client({
     region: 'auto',
@@ -76,8 +103,10 @@ async function main() {
   })
 
   let updated = 0
+  let healthy = 0
+  let unhealthy = 0
 
-  for (const forum of realForums) {
+  for (const forum of screenshotForums) {
     const domain = forum.domain
     const url = forum.web_base
     const key = `screenshots/${domain.replace(/\./g, '-')}.jpg`
@@ -103,13 +132,46 @@ async function main() {
       log(`  Updating API: ${domain} -> ${screenshotUrl}`)
       await updateScreenshotViaAPI(domain, screenshotUrl)
       updated++
+
+      // Report healthy
+      await reportHealth(domain, true)
+      healthy++
     } catch (err) {
       log(`  Failed: ${err.message}`)
+
+      // Report unhealthy
+      const result = await reportHealth(domain, false)
+      unhealthy++
+      if (result?.action === 'delisted') {
+        log(`  Forum ${domain} has been delisted after ${result.consecutive_failures} consecutive failures`)
+      } else if (result?.action === 'auto_deleted') {
+        log(`  Unowned forum ${domain} has been auto-deleted after ${result.consecutive_failures} consecutive failures`)
+      }
+    }
+  }
+
+  // Health-check forums without capabilities (no screenshot needed, just probe the manifest)
+  const manifestOnlyForums = allForums.filter(f => !f.capabilities || f.capabilities.length === 0)
+  for (const forum of manifestOnlyForums) {
+    try {
+      const manifestRes = await fetch(`https://${forum.domain}/.well-known/forumline-manifest.json`, {
+        signal: AbortSignal.timeout(10000),
+      })
+      if (manifestRes.ok) {
+        await reportHealth(forum.domain, true)
+        healthy++
+      } else {
+        await reportHealth(forum.domain, false)
+        unhealthy++
+      }
+    } catch {
+      await reportHealth(forum.domain, false)
+      unhealthy++
     }
   }
 
   await browser.close()
-  log(`Done! Updated ${updated}/${realForums.length} forums.`)
+  log(`Done! Screenshots: ${updated}/${screenshotForums.length}. Health: ${healthy} healthy, ${unhealthy} unhealthy.`)
 }
 
 main().catch(err => {

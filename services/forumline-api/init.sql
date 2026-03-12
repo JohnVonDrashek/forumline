@@ -29,6 +29,8 @@ CREATE TABLE IF NOT EXISTS forumline_forums (
   screenshot_url TEXT,
   tags TEXT[] DEFAULT '{}',
   member_count INTEGER DEFAULT 0 NOT NULL CHECK (member_count >= 0),
+  last_seen_at TIMESTAMPTZ,
+  consecutive_failures INTEGER DEFAULT 0 NOT NULL,
   created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
   updated_at TIMESTAMPTZ DEFAULT now() NOT NULL
 );
@@ -107,6 +109,7 @@ CREATE INDEX IF NOT EXISTS idx_forumline_forums_owner_id ON forumline_forums(own
 CREATE INDEX IF NOT EXISTS idx_forumline_forums_approved ON forumline_forums(approved) WHERE approved = true;
 CREATE INDEX IF NOT EXISTS idx_forumline_forums_tags ON forumline_forums USING GIN(tags) WHERE approved = true;
 CREATE INDEX IF NOT EXISTS idx_forumline_forums_member_count ON forumline_forums(member_count DESC) WHERE approved = true;
+CREATE INDEX IF NOT EXISTS idx_forumline_forums_health_probe ON forumline_forums(last_seen_at NULLS FIRST) WHERE approved = true;
 
 -- Keep member_count in sync with memberships
 CREATE OR REPLACE FUNCTION update_forum_member_count() RETURNS TRIGGER AS $$
