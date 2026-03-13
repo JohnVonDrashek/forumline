@@ -1,8 +1,15 @@
 import { $, plural } from '../lib/utils.js';
 import store from '../state/store.js';
 import * as data from '../state/data.js';
+import { Identity } from '../api/identity.js';
+import { ForumlineAPI } from '../api/client.js';
 
 let _showView, _renderForumList, _renderDmList, _closeAllDropdowns, _showThread, _showForum, _showSettings;
+
+// Cache for the current user's identity profile loaded from the API.
+let _identityProfile = null;
+// Track which username/key is currently displayed for tab rendering.
+let _currentProfileKey = null;
 
 function animateCounter(el, target) {
   const duration = 600;
@@ -26,18 +33,71 @@ export function showProfile(username) {
   store.currentForum = null;
   store.currentThread = null;
   store.currentDm = null;
-  const profile = data.profiles[username] || data.profiles['testcaller'];
-  $('profileName').textContent = profile.name;
-  $('profileBio').textContent = profile.bio;
-  $('profileAvatar').src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.seed}`;
-  $('profileForumCount').textContent = profile.forums;
-  $('profileThreadCount').textContent = profile.threads;
-  $('profileReplyCount').textContent = profile.replies;
-  $('profileJoined').textContent = profile.joined;
+
+  // Determine if viewing own profile
+  const currentUserId = ForumlineAPI.getUserId();
+  const isOwnProfile = username === 'me' || username === currentUserId || username === _identityProfile?.username;
+
+  // Resolve the mock data key
+  const profileKey = isOwnProfile ? (_identityProfile?.username || 'testcaller') : username;
+  _currentProfileKey = profileKey;
+
+  // Show the view immediately with mock/cached data, then update from API
+  const mockProfile = data.profiles[profileKey] || (isOwnProfile ? data.profiles['testcaller'] : null);
+  _renderProfileData(mockProfile, profileKey, isOwnProfile);
+
+  _showView('profileView');
+  _renderForumList();
+  _renderDmList();
+  _closeAllDropdowns();
+
+  // Fetch real data from API for own profile
+  if (isOwnProfile && ForumlineAPI.isAuthenticated()) {
+    Identity.getProfile().then(profile => {
+      _identityProfile = profile;
+      const userId = profile.forumline_id || currentUserId;
+      const displayName = profile.display_name || profile.username || username;
+      const avatarUrl = profile.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${userId}`;
+      const bio = profile.bio || profile.status_message || '';
+
+      $('profileName').textContent = displayName;
+      $('profileBio').textContent = bio;
+      $('profileAvatar').src = avatarUrl;
+    }).catch(() => {
+      // Fall through to mock data display
+    });
+  }
+}
+
+/** Returns the cached identity profile (loaded from /api/identity). */
+export function getIdentityProfile() {
+  return _identityProfile;
+}
+
+function _renderProfileData(profile, username, isOwnProfile) {
+  const currentUserId = ForumlineAPI.getUserId();
+  if (profile) {
+    $('profileName').textContent = profile.name || profile.display_name || username;
+    $('profileBio').textContent = profile.bio || '';
+    const seed = isOwnProfile && currentUserId ? currentUserId : (profile.seed || username);
+    $('profileAvatar').src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}`;
+    $('profileForumCount').textContent = profile.forums || 0;
+    $('profileThreadCount').textContent = profile.threads || 0;
+    $('profileReplyCount').textContent = profile.replies || 0;
+    $('profileJoined').textContent = profile.joined || '';
+  } else {
+    $('profileName').textContent = username;
+    $('profileBio').textContent = '';
+    $('profileAvatar').src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`;
+    $('profileForumCount').textContent = '0';
+    $('profileThreadCount').textContent = '0';
+    $('profileReplyCount').textContent = '0';
+    $('profileJoined').textContent = '';
+  }
 
   // Show edit button only for own profile
   const editBtn = $('profileEditBtn');
-  if (username === 'testcaller') {
+  if (isOwnProfile) {
     editBtn.classList.remove('hidden');
   } else {
     editBtn.classList.add('hidden');
@@ -46,20 +106,15 @@ export function showProfile(username) {
   // Render profile activity tab
   renderProfileTab('activity', username);
 
-  _showView('profileView');
-  _renderForumList();
-  _renderDmList();
-  _closeAllDropdowns();
-
   // Render badges
   renderProfileBadges(username);
 
   // Animate the stat counters
   setTimeout(() => {
     if (profile) {
-      animateCounter($('profileForumCount'), profile.forums);
-      animateCounter($('profileThreadCount'), profile.threads);
-      animateCounter($('profileReplyCount'), profile.replies);
+      animateCounter($('profileForumCount'), profile.forums || 0);
+      animateCounter($('profileThreadCount'), profile.threads || 0);
+      animateCounter($('profileReplyCount'), profile.replies || 0);
     }
   }, 100);
 }
@@ -172,8 +227,7 @@ export function initProfile(deps) {
       });
       tab.classList.add('active');
       tab.setAttribute('aria-selected', 'true');
-      const profileName = $('profileName').textContent;
-      renderProfileTab(tab.dataset.ptab, profileName);
+      renderProfileTab(tab.dataset.ptab, _currentProfileKey);
     });
   });
 

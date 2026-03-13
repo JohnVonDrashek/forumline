@@ -34,8 +34,8 @@
             <span class="notif-badge" aria-hidden="true">3</span>
           </button>
           <button class="avatar-pill" id="userMenu" aria-label="User menu" aria-haspopup="true">
-            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=testcaller" alt="" class="avatar-sm">
-            <span class="username">testcaller</span>
+            <img src="" alt="" class="avatar-sm">
+            <span class="username"></span>
             <span class="chevron" aria-hidden="true">&#x25BE;</span>
           </button>
         </div>
@@ -45,7 +45,7 @@
     <!-- Announcement banner -->
     <div class="announcement-banner" id="announcementBanner" role="alert">
       <span class="announcement-icon" aria-hidden="true">&#x1F4E3;</span>
-      <span class="announcement-text">Forumline v2.0 is here! Voice rooms now support screen sharing. <a href="javascript:void(0)" class="announcement-link" onclick="showDiscover()">Learn more</a></span>
+      <span class="announcement-text">Forumline v2.0 is here! Voice rooms now support screen sharing. <a href="javascript:void(0)" class="announcement-link" id="announcementLearnMore">Learn more</a></span>
       <button class="announcement-close" id="announcementClose" aria-label="Dismiss announcement">&times;</button>
     </div>
 
@@ -56,9 +56,9 @@
       <!-- Sidebar — linen texture -->
       <nav class="sidebar" id="sidebar" aria-label="Sidebar navigation">
         <div class="sidebar-status" id="sidebarStatus">
-          <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=testcaller" class="avatar-sm" alt="Your avatar">
+          <img src="" class="avatar-sm" id="sidebarAvatar" alt="Your avatar">
           <div class="status-info">
-            <span class="status-name">testcaller</span>
+            <span class="status-name" id="sidebarUsername"></span>
             <button class="status-message" id="statusBtn" aria-label="Set your status">
               <span class="status-emoji" id="statusEmoji">&#x1F4BB;</span>
               <span class="status-text" id="statusText">Working from home</span>
@@ -116,7 +116,7 @@
         <!-- Home view (default) -->
         <div class="view" id="homeView">
           <div class="content-header">
-            <h1>Welcome back, testcaller</h1>
+            <h1 id="homeGreeting">Welcome back</h1>
           </div>
           <div class="home-grid">
             <div class="home-card activity-card">
@@ -279,7 +279,7 @@
               <button class="image-preview-remove" id="imagePreviewRemove" aria-label="Remove image">&times;</button>
             </div>
             <div class="reply-box">
-              <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=testcaller" alt="" class="avatar-sm">
+              <img src="" alt="" class="avatar-sm" id="replyAvatar">
               <textarea placeholder="Write a reply... (drag an image to attach)" id="replyInput"></textarea>
               <button class="aqua-btn reply-btn" id="replyBtn">Reply</button>
             </div>
@@ -394,21 +394,21 @@
                 <div class="settings-group">
                   <label class="settings-label">Profile Picture</label>
                   <div class="settings-avatar-row">
-                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=testcaller" class="settings-avatar" alt="">
+                    <img src="" class="settings-avatar" alt="Profile picture">
                     <button class="aqua-btn settings-upload-btn">Change Photo</button>
                   </div>
                 </div>
                 <div class="settings-group">
                   <label class="settings-label" for="settingsDisplayName">Display Name</label>
-                  <input type="text" class="settings-input" id="settingsDisplayName" value="testcaller">
+                  <input type="text" class="settings-input" id="settingsDisplayName" value="">
                 </div>
                 <div class="settings-group">
                   <label class="settings-label" for="settingsEmail">Email</label>
-                  <input type="email" class="settings-input" id="settingsEmail" value="testcaller@example.com">
+                  <input type="email" class="settings-input" id="settingsEmail" value="" disabled>
                 </div>
                 <div class="settings-group">
                   <label class="settings-label" for="settingsBio">Bio</label>
-                  <textarea class="settings-textarea" id="settingsBio" placeholder="Tell people about yourself...">Exploring the forumline network. Voice room enthusiast.</textarea>
+                  <textarea class="settings-textarea" id="settingsBio" placeholder="Tell people about yourself..."></textarea>
                 </div>
                 <div class="settings-group">
                   <label class="settings-label" for="onlineStatusSelect">Online Status</label>
@@ -420,7 +420,7 @@
                   </select>
                 </div>
                 <div class="settings-group">
-                  <button class="aqua-btn">Save Changes</button>
+                  <button class="aqua-btn" id="settingsSaveBtn">Save Changes</button>
                 </div>
               </div>
               <div class="settings-panel hidden" id="settingsAppearance">
@@ -759,10 +759,10 @@
   <!-- User menu dropdown -->
   <div class="user-dropdown hidden" id="userDropdown" role="menu" aria-label="User menu">
     <div class="user-dropdown-header">
-      <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=testcaller" class="avatar-md" alt="Your avatar">
+      <img src="" class="avatar-md" alt="Your avatar">
       <div>
-        <div class="user-dropdown-name">testcaller</div>
-        <div class="user-dropdown-email">testcaller@example.com</div>
+        <div class="user-dropdown-name"></div>
+        <div class="user-dropdown-email"></div>
       </div>
     </div>
     <div class="user-dropdown-divider"></div>
@@ -785,7 +785,7 @@
       <div class="search-modal-input-row">
         <span class="search-modal-icon" aria-hidden="true">&#x1F50D;</span>
         <input type="text" class="search-modal-input" id="searchModalInput" placeholder="Search forums, threads, people..." autofocus role="combobox" aria-expanded="true" aria-controls="searchModalResults" aria-autocomplete="list" aria-label="Search forums, threads, people">
-        <kbd class="search-kbd" aria-hidden="true">ESC</kbd>
+        <kbd class="search-kbd" id="searchEscBtn" aria-hidden="true" role="button" style="cursor:pointer">ESC</kbd>
       </div>
       <div class="search-modal-results" id="searchModalResults" role="listbox">
         <div class="search-modal-hint">Type to search across all forums, threads, and people...</div>

@@ -266,6 +266,22 @@
   border-radius: 50%;
 }
 
+.dm-avatar-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.dm-online-dot {
+  position: absolute;
+  bottom: -1px;
+  right: -1px;
+  width: 8px;
+  height: 8px;
+  background: #34c759;
+  border: 2px solid var(--bg-secondary, #f0ece2);
+  border-radius: 50%;
+}
+
 .forum-item-info, .dm-item-info {
   flex: 1;
   min-width: 0;

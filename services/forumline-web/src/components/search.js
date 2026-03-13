@@ -26,7 +26,7 @@ function getCommands() {
     { icon: '&#x2795;', name: 'Create Forum', action: () => _deps.showCreateForum() },
     { icon: '&#x1F4DD;', name: 'New Thread', action: () => { if (store.currentForum) _deps.showNewThread(); else _deps.showToast('Open a forum first'); }, shortcut: '' },
     { icon: '&#x2699;', name: 'Settings', action: () => _deps.showSettings(), shortcut: '' },
-    { icon: '&#x1F464;', name: 'My Profile', action: () => _deps.showProfile('testcaller') },
+    { icon: '&#x1F464;', name: 'My Profile', action: () => _deps.showProfile('me') },
     { icon: '&#x1F30D;', name: 'Discover Forums', action: () => _deps.showDiscover() },
     { icon: '&#x1F3A4;', name: 'Join Voice Room', action: () => { $('voiceOverlay').classList.remove('hidden'); _deps.renderVoiceParticipants(); } },
     { icon: '&#x1F319;', name: 'Toggle Dark Mode', action: () => { const isDark = document.documentElement.getAttribute('data-theme') === 'dark'; _deps.setTheme(isDark ? 'light' : 'dark'); }, shortcut: '' },
@@ -226,6 +226,7 @@ export function initSearch(deps) {
 
   $('globalSearch')?.addEventListener('click', openSearch);
   $('searchModalBackdrop')?.addEventListener('click', closeSearch);
+  $('searchEscBtn')?.addEventListener('click', closeSearch);
   $('searchModalInput')?.addEventListener('input', handleSearchInput);
   $('searchModalInput')?.addEventListener('keydown', handleSearchKeydown);
 }

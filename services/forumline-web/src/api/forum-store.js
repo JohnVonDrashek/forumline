@@ -64,6 +64,32 @@ export const ForumStore = {
     this._notify(); return mem;
   },
 
+  async joinByDomain(domain, forumInfo) {
+    if (this._forums.some(f => f.domain === domain)) throw new Error('Already joined');
+    if (!this._accessToken) throw new Error('Not authenticated');
+    const res = await fetch('/api/memberships/join', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + this._accessToken },
+      body: JSON.stringify({ forum_domain: domain }),
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      throw new Error('Join failed: ' + (text || res.status));
+    }
+    const info = forumInfo || {};
+    const mem = {
+      domain: domain, name: info.name || domain, icon_url: info.icon_url || '',
+      web_base: info.web_base || 'https://' + domain, api_base: info.api_base || '',
+      capabilities: info.capabilities || [], added_at: new Date().toISOString(),
+      id: 'real_' + domain.replace(/[^a-z0-9]/g, '_'), seed: domain,
+      members: info.member_count || 0, unread: 0, threads: 0, isReal: true,
+    };
+    this._forums.push(mem);
+    try { localStorage.setItem('forumline-memberships', JSON.stringify(this._forums)); } catch (e) {}
+    this._notify();
+    return mem;
+  },
+
   async leaveForum(domain) {
     if (this._accessToken) { try { await fetch('/api/memberships', { method: 'DELETE', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + this._accessToken }, body: JSON.stringify({ forum_domain: domain }) }); } catch (e) {} }
     this._forums = this._forums.filter(f => f.domain !== domain);

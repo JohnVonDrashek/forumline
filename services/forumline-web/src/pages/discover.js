@@ -103,10 +103,14 @@ export function renderDiscover() {
       btn.disabled = true;
       btn.textContent = 'Joining...';
       try {
-        await ForumStore.addForum(domain);
+        // Find forum info from discovery results to pass along
+        const allForums = [...(discoveryForumsApi || []), ...discoveryRecommended];
+        const forumInfo = allForums.find(f => f.domain === domain);
+        await ForumStore.joinByDomain(domain, forumInfo);
         btn.textContent = 'Joined';
         btn.classList.add('joined');
         _showToast('Forum joined!');
+        _renderForumList();
         // Refresh discovery
         void fetchDiscoveryForums();
         void fetchDiscoveryRecommended();

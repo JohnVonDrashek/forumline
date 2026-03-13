@@ -1,4 +1,5 @@
 import { $ } from '../lib/utils.js';
+import { ForumlineAuth } from '../api/auth.js';
 
 let _deps = {
   showProfile: () => {},
@@ -33,11 +34,11 @@ export function initNav(deps) {
   });
 
   // Menu profile/settings/logout click handlers
-  $('menuProfile')?.addEventListener('click', () => _deps.showProfile('testcaller'));
+  $('menuProfile')?.addEventListener('click', () => _deps.showProfile('me'));
   $('menuSettings')?.addEventListener('click', () => _deps.showSettings());
   $('menuLogout')?.addEventListener('click', () => {
     closeAllDropdowns();
-    _deps.showLogin();
+    ForumlineAuth.signOut();
   });
 
   // Logo click -> home handler

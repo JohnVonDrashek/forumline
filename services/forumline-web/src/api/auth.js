@@ -256,3 +256,6 @@ export const ForumlineAuth = {
     return () => { this._listeners.delete(callback); };
   },
 };
+
+// Initialize session from localStorage on module load
+ForumlineAuth._init();

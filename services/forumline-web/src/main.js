@@ -41,7 +41,7 @@ import { fireConfetti } from './components/confetti.js';
 import { initStatusModal } from './components/status-modal.js';
 import { closeAllDropdowns, initNav } from './components/nav.js';
 
-import { initRouter, pushState } from './router.js';
+import { initRouter, pushState, consumePendingRoute } from './router.js';
 
 // API modules
 import { ForumlineAPI } from './api/client.js';
@@ -121,7 +121,8 @@ function _updateUserDisplay(session) {
   if (!session || !session.user) return;
   const username = session.user.user_metadata?.username || session.user.email?.split('@')[0] || 'user';
   const email = session.user.email || '';
-  const seed = username;
+  // Use user ID as avatar seed per architecture spec (DiceBear avataaars seeded by ID)
+  const seed = session.user.id || username;
 
   const dropdownName = document.querySelector('.user-dropdown-name');
   const dropdownEmail = document.querySelector('.user-dropdown-email');
@@ -132,11 +133,29 @@ function _updateUserDisplay(session) {
 
   const userMenuAvatar = document.querySelector('#userMenu img');
   if (userMenuAvatar) userMenuAvatar.src = 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + seed;
+
+  const userMenuName = document.querySelector('#userMenu .username');
+  if (userMenuName) userMenuName.textContent = username;
+
+  // Sidebar user display
+  const sidebarAvatar = $('sidebarAvatar');
+  if (sidebarAvatar) sidebarAvatar.src = 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + seed;
+  const sidebarUsername = $('sidebarUsername');
+  if (sidebarUsername) sidebarUsername.textContent = username;
+
+  // Home greeting
+  const homeGreeting = $('homeGreeting');
+  if (homeGreeting) homeGreeting.textContent = 'Welcome back, ' + username;
+
+  // Reply box avatar
+  const replyAvatar = $('replyAvatar');
+  if (replyAvatar) replyAvatar.src = 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + seed;
 }
 
 function _startDmStoreIfAuth() {
   if (ForumlineAPI.isAuthenticated() && !_dmStoreStopUpdates) {
     _dmStoreStopUpdates = DmStore.startUpdates();
+    DmStore.onChanged(() => renderDmList());
     PresenceTracker.start();
     PresenceTracker.onUpdate(() => renderDmList());
   }
@@ -162,6 +181,7 @@ ForumlineAuth.onAuthStateChange((event, session) => {
     if (!_authHasRendered && session) {
       hideLogin();
       wrappedShowHome({ skipHistory: true });
+      consumePendingRoute();
       _updateUserDisplay(session);
       _authHasRendered = true;
     }
@@ -172,6 +192,8 @@ ForumlineAuth.onAuthStateChange((event, session) => {
       ForumlineAPI.configure({ accessToken: session.access_token, userId: session.user.id });
       hideLogin();
       wrappedShowHome({ skipHistory: true });
+      // Navigate to the URL path the user originally requested (e.g. /discover, /settings)
+      consumePendingRoute();
       _updateUserDisplay(session);
       _authHasRendered = true;
 
@@ -231,7 +253,7 @@ initStatusModal();
 data.commands[0].action = () => wrappedShowCreateForum();
 data.commands[1].action = () => { if (store.currentForum) wrappedShowNewThread(); else showToast('Open a forum first'); };
 data.commands[2].action = () => wrappedShowSettings();
-data.commands[3].action = () => wrappedShowProfile('testcaller');
+data.commands[3].action = () => wrappedShowProfile('me');
 data.commands[4].action = () => wrappedShowDiscover();
 data.commands[5].action = () => { $('voiceOverlay').classList.remove('hidden'); renderVoiceParticipants(); startVoiceSpeakingAnimation(); };
 data.commands[6].action = () => { const isDark = document.documentElement.getAttribute('data-theme') === 'dark'; setTheme(isDark ? 'light' : 'dark'); };
@@ -342,6 +364,7 @@ initSettings({
   showView,
   closeAllDropdowns,
   showLogin,
+  showToast,
 });
 
 initCreateForum({
@@ -424,12 +447,16 @@ NativeBridge.init({
 $('discoverBtn')?.addEventListener('click', () => wrappedShowDiscover());
 $('createBtn')?.addEventListener('click', () => wrappedShowCreateForum());
 $('newThreadBtn')?.addEventListener('click', () => wrappedShowNewThread());
+$('announcementLearnMore')?.addEventListener('click', () => wrappedShowDiscover());
 
 // ========== INITIAL RENDER ==========
 renderForumList();
 renderDmList();
 renderActivityFeed();
 renderBookmarks();
+
+// Re-render sidebar when ForumStore memberships change
+ForumStore.subscribe(() => renderForumList());
 
 // Announcement banner dismiss
 const bannerDismissed = localStorage.getItem('forumline-banner-dismissed');
