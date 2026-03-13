@@ -25,7 +25,7 @@ function connect() {
   eventSource.onerror = () => {
     eventSource?.close();
     eventSource = null;
-    if (!destroyed && listeners.size > 0) {
+    if (!destroyed && listeners.size > 0 && ForumlineAPI.getToken()) {
       const base = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000);
       const jitter = Math.random() * base * 0.3;
       reconnectAttempts++;

@@ -1,5 +1,6 @@
 // ========== BROWSER HISTORY MANAGEMENT ==========
 import store from './state/store.js';
+import { ForumStore } from './api/forum-store.js';
 
 let nav = {};
 
@@ -48,7 +49,12 @@ function navigateToState(state) {
   if (!state || state.view === 'home') {
     nav.showHome({ skipHistory: true });
   } else if (state.view === 'forum' && state.forumId) {
-    nav.showForum(state.forumId, { skipHistory: true });
+    // Check if this is a real forum (has a domain) — use webview
+    if (state.isReal || ForumStore.forums.some(f => f.domain === state.forumId)) {
+      ForumStore.switchForum(state.forumId);
+    } else {
+      nav.showForum(state.forumId, { skipHistory: true });
+    }
   } else if (state.view === 'thread' && state.threadId) {
     if (state.forumId) store.currentForum = state.forumId;
     nav.showThread(state.threadId, { skipHistory: true });

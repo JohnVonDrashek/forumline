@@ -100,7 +100,16 @@ export const ForumStore = {
 
   async toggleMute(domain) {
     if (!this._accessToken) return;
-    try { await fetch('/api/memberships/' + encodeURIComponent(domain) + '/mute', { method: 'POST', headers: { Authorization: 'Bearer ' + this._accessToken } }); } catch (e) {}
+    const forum = this._forums.find(f => f.domain === domain);
+    const newMuted = forum ? !forum.muted : true;
+    try {
+      await fetch('/api/memberships', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + this._accessToken },
+        body: JSON.stringify({ forum_domain: domain, muted: newMuted }),
+      });
+      if (forum) forum.muted = newMuted;
+    } catch (e) {}
   },
 
   switchForum(domain) {

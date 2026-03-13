@@ -76,6 +76,7 @@ function connectCallSSE() {
   };
   callSignalSSE.onerror = () => {
     callSignalSSE?.close(); callSignalSSE = null;
+    if (!ForumlineAPI.getToken()) return; // Don't reconnect if logged out
     const base = Math.min(1000 * Math.pow(2, sseReconnectAttempts), 30000);
     sseReconnectAttempts++;
     sseReconnectTimer = setTimeout(connectCallSSE, base + Math.random() * base * 0.3);

@@ -6,6 +6,7 @@ import { ForumlineAPI } from '../api/client.js';
 import { DmStore } from '../api/dm-store.js';
 import { PresenceTracker } from '../api/presence.js';
 import { ForumStore } from '../api/forum-store.js';
+import { pushState } from '../router.js';
 
 // ========== BOOKMARKS ==========
 let bookmarks = [];
@@ -103,6 +104,7 @@ export function renderForumList() {
       const domain = item.dataset.domain;
       if (domain) {
         ForumStore.switchForum(domain);
+        pushState({ view: 'forum', forumId: domain, isReal: true });
       } else {
         _deps.showForum(item.dataset.forum);
       }
@@ -113,6 +115,7 @@ export function renderForumList() {
         const domain = item.dataset.domain;
         if (domain) {
           ForumStore.switchForum(domain);
+          pushState({ view: 'forum', forumId: domain, isReal: true });
         } else {
           _deps.showForum(item.dataset.forum);
         }
@@ -161,7 +164,7 @@ export function renderDmList() {
       const avatarUrl = !c.isGroup && others[0]?.avatarUrl
         ? others[0].avatarUrl
         : `https://api.dicebear.com/7.x/${c.isGroup ? 'shapes' : 'avataaars'}/svg?seed=${encodeURIComponent(seed)}`;
-      const preview = escapeHtml(c.lastMessage?.content || '');
+      const preview = escapeHtml(typeof c.lastMessage === 'string' ? c.lastMessage : (c.lastMessage?.content || ''));
       const hasUnread = (c.unreadCount || 0) > 0;
 
       // Track 1:1 conversation partner for presence

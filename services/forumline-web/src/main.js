@@ -20,7 +20,7 @@ import { showForum, renderFilteredThreads, renderOnlineBar, initForum } from './
 import { showThread, renderPosts, initThread } from './pages/thread.js';
 import { showDm, renderMessages, initConversation } from './pages/conversation.js';
 import { showDiscover, renderDiscover, initDiscover } from './pages/discover.js';
-import { showProfile, initProfile } from './pages/profile.js';
+import { showProfile, initProfile, clearIdentityProfile } from './pages/profile.js';
 import { showSettings, initSettings } from './pages/settings.js';
 import { showCreateForum, initCreateForum } from './pages/create-forum.js';
 import { showNewThread, initNewThread } from './pages/new-thread.js';
@@ -71,6 +71,13 @@ const wrappedShowHome = (opts) => {
 };
 
 const wrappedShowForum = (id, opts) => {
+  // Check if this is a real forum (from ForumStore) — use webview instead of mock forum view
+  const realForum = ForumStore.forums.find(f => f.id === id || f.domain === id);
+  if (realForum) {
+    ForumStore.switchForum(realForum.domain);
+    if (!opts?.skipHistory) pushState({ view: 'forum', forumId: id });
+    return;
+  }
   showForum(id);
   renderOnlineBar(id);
   if (!opts?.skipHistory) pushState({ view: 'forum', forumId: id });
@@ -217,6 +224,8 @@ ForumlineAuth.onAuthStateChange((event, session) => {
   } else if (event === 'SIGNED_OUT') {
     ForumlineAPI.configure({ accessToken: null, userId: null });
     _stopDmStore();
+    CallManager.destroyCallManager();
+    clearIdentityProfile();
     _authHasRendered = false;
     showLogin();
   }
@@ -448,6 +457,33 @@ $('discoverBtn')?.addEventListener('click', () => wrappedShowDiscover());
 $('createBtn')?.addEventListener('click', () => wrappedShowCreateForum());
 $('newThreadBtn')?.addEventListener('click', () => wrappedShowNewThread());
 $('announcementLearnMore')?.addEventListener('click', () => wrappedShowDiscover());
+
+// Webview forum buttons
+$('webviewLeaveBtn')?.addEventListener('click', () => {
+  const forum = ForumStore.activeForum;
+  if (!forum) return;
+  if (confirm(`Leave ${forum.name}? You can rejoin later.`)) {
+    ForumStore.leaveForum(forum.domain);
+    wrappedShowHome();
+    showToast(`Left ${forum.name}`);
+  }
+});
+
+$('webviewMuteBtn')?.addEventListener('click', () => {
+  const forum = ForumStore.activeForum;
+  if (!forum) return;
+  const willMute = !forum.muted;
+  ForumStore.toggleMute(forum.domain);
+  showToast(willMute ? `Muted ${forum.name}` : `Unmuted ${forum.name}`);
+});
+
+$('webviewAuthBtn')?.addEventListener('click', () => {
+  ForumStore.loginToForum();
+});
+
+$('webviewBannerLoginBtn')?.addEventListener('click', () => {
+  ForumStore.loginToForum();
+});
 
 // ========== INITIAL RENDER ==========
 renderForumList();

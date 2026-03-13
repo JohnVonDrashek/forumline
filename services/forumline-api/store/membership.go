@@ -11,7 +11,8 @@ import (
 func (s *Store) ListMemberships(ctx context.Context, userID string) ([]model.Membership, error) {
 	rows, err := s.Pool.Query(ctx,
 		`SELECT m.id, m.joined_at, m.forum_authed_at, m.notifications_muted,
-		        f.domain, f.name, f.icon_url, f.api_base, f.web_base, f.capabilities
+		        f.domain, f.name, f.icon_url, f.api_base, f.web_base, f.capabilities,
+		        f.member_count
 		 FROM forumline_memberships m
 		 JOIN forumline_forums f ON f.id = m.forum_id
 		 WHERE m.user_id = $1
@@ -31,7 +32,8 @@ func (s *Store) ListMemberships(ctx context.Context, userID string) ([]model.Mem
 		var notifMuted bool
 
 		if err := rows.Scan(&id, &joinedAt, &forumAuthedAt, &notifMuted,
-			&m.ForumDomain, &m.ForumName, &m.ForumIconURL, &m.APIBase, &m.WebBase, &m.Capabilities); err != nil {
+			&m.ForumDomain, &m.ForumName, &m.ForumIconURL, &m.APIBase, &m.WebBase, &m.Capabilities,
+			&m.MemberCount); err != nil {
 			continue
 		}
 		m.JoinedAt = joinedAt.Format(time.RFC3339)

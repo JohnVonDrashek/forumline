@@ -38,40 +38,93 @@ export function showProfile(username) {
   const currentUserId = ForumlineAPI.getUserId();
   const isOwnProfile = username === 'me' || username === currentUserId || username === _identityProfile?.username;
 
-  // Resolve the mock data key
-  const profileKey = isOwnProfile ? (_identityProfile?.username || 'testcaller') : username;
+  // Resolve the profile key for mock data lookups (tabs, badges, etc.)
+  // For own profile, try cached API username first, then fall back to session metadata
+  let profileKey;
+  if (isOwnProfile) {
+    const session = JSON.parse(localStorage.getItem('forumline-session') || 'null');
+    profileKey = _identityProfile?.username || session?.user?.user_metadata?.username || username;
+  } else {
+    profileKey = username;
+  }
   _currentProfileKey = profileKey;
-
-  // Show the view immediately with mock/cached data, then update from API
-  const mockProfile = data.profiles[profileKey] || (isOwnProfile ? data.profiles['testcaller'] : null);
-  _renderProfileData(mockProfile, profileKey, isOwnProfile);
 
   _showView('profileView');
   _renderForumList();
   _renderDmList();
   _closeAllDropdowns();
 
-  // Fetch real data from API for own profile
+  // For own profile, prefer cached API data or fetch fresh data
   if (isOwnProfile && ForumlineAPI.isAuthenticated()) {
+    // Render cached identity immediately if available, otherwise show placeholder
+    if (_identityProfile) {
+      _renderApiProfileData(_identityProfile, currentUserId, profileKey, isOwnProfile);
+    } else {
+      // Show placeholder while loading
+      $('profileName').textContent = profileKey;
+      $('profileBio').textContent = '';
+      $('profileAvatar').src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUserId || profileKey}`;
+      $('profileForumCount').textContent = '—';
+      $('profileThreadCount').textContent = '—';
+      $('profileReplyCount').textContent = '—';
+      $('profileJoined').textContent = '';
+      const editBtn = $('profileEditBtn');
+      editBtn.classList.remove('hidden');
+      renderProfileTab('activity', profileKey);
+      renderProfileBadges(profileKey);
+    }
+
+    // Fetch fresh data from API
     Identity.getProfile().then(profile => {
       _identityProfile = profile;
-      const userId = profile.forumline_id || currentUserId;
-      const displayName = profile.display_name || profile.username || username;
-      const avatarUrl = profile.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${userId}`;
-      const bio = profile.bio || profile.status_message || '';
-
-      $('profileName').textContent = displayName;
-      $('profileBio').textContent = bio;
-      $('profileAvatar').src = avatarUrl;
+      _renderApiProfileData(profile, currentUserId, profileKey, isOwnProfile);
     }).catch(() => {
-      // Fall through to mock data display
+      // If API fails and we have no cache, fall back to mock data
+      if (!_identityProfile) {
+        const mockProfile = data.profiles[profileKey];
+        if (mockProfile) _renderProfileData(mockProfile, profileKey, isOwnProfile);
+      }
     });
+  } else {
+    // Viewing another user's profile — use mock data
+    const mockProfile = data.profiles[profileKey] || null;
+    _renderProfileData(mockProfile, profileKey, isOwnProfile);
   }
 }
 
 /** Returns the cached identity profile (loaded from /api/identity). */
 export function getIdentityProfile() {
   return _identityProfile;
+}
+
+/** Clears the cached identity profile (call on sign-out). */
+export function clearIdentityProfile() {
+  _identityProfile = null;
+}
+
+function _renderApiProfileData(profile, currentUserId, profileKey, _isOwnProfile) {
+  const userId = profile.forumline_id || currentUserId;
+  const displayName = profile.display_name || profile.username || profileKey;
+  const avatarUrl = profile.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${userId}`;
+  const bio = profile.bio || profile.status_message || '';
+
+  $('profileName').textContent = displayName;
+  $('profileBio').textContent = bio;
+  $('profileAvatar').src = avatarUrl;
+
+  // Stats — API doesn't currently return these, so show '—' placeholders
+  $('profileForumCount').textContent = '—';
+  $('profileThreadCount').textContent = '—';
+  $('profileReplyCount').textContent = '—';
+  $('profileJoined').textContent = '';
+
+  // Show edit button for own profile
+  const editBtn = $('profileEditBtn');
+  editBtn.classList.remove('hidden');
+
+  // Render tabs and badges using the profile key (for mock activity data)
+  renderProfileTab('activity', profileKey);
+  renderProfileBadges(profileKey);
 }
 
 function _renderProfileData(profile, username, isOwnProfile) {

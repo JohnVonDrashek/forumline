@@ -66,6 +66,7 @@ type Membership struct {
 	APIBase            string   `json:"api_base"`
 	WebBase            string   `json:"web_base"`
 	Capabilities       []string `json:"capabilities"`
+	MemberCount        int      `json:"member_count"`
 	JoinedAt           string   `json:"joined_at"`
 	ForumAuthedAt      *string  `json:"forum_authed_at"`
 	NotificationsMuted bool     `json:"notifications_muted"`
