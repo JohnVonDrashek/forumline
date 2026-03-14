@@ -90,6 +90,8 @@ function searchIdentity(query) {
   return apiFetch(`/api/identity/search?q=${encodeURIComponent(query)}`);
 }
 
+function getActivity() { return apiFetch('/api/activity'); }
+
 function presenceHeartbeat() {
   return apiFetch('/api/presence/heartbeat', { method: 'POST', silent: true });
 }
@@ -103,5 +105,5 @@ export const ForumlineAPI = {
   configure, getToken, getUserId, isAuthenticated, apiFetch,
   getConversations, getConversation, getMessages, sendMessage, markRead,
   getOrCreateDM, createGroupConversation, updateConversation, leaveConversation,
-  searchProfiles, searchIdentity, presenceHeartbeat, getPresenceStatus,
+  searchProfiles, searchIdentity, getActivity, presenceHeartbeat, getPresenceStatus,
 };

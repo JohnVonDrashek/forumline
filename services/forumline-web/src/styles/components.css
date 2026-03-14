@@ -92,6 +92,14 @@
   margin-top: 2px;
 }
 
+.activity-loading,
+.activity-empty {
+  font-size: 12px;
+  color: var(--text-muted);
+  padding: 16px 0;
+  text-align: center;
+}
+
 .stat-row {
   display: flex;
   justify-content: space-between;
