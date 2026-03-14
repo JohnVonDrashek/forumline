@@ -492,6 +492,7 @@
   border-bottom: 1px solid #d0d0d0;
   background: linear-gradient(180deg, #fafafa, #f0f0f0);
   box-shadow: 0 1px 0 rgba(255,255,255,0.5) inset;
+  flex-shrink: 0;
 }
 
 .content-header h1 {
