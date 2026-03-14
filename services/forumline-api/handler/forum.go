@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/forumline/forumline/services/forumline-api/service"
 	"github.com/forumline/forumline/services/forumline-api/store"
 	shared "github.com/forumline/forumline/shared-go"
@@ -409,10 +410,26 @@ func (h *ForumHandler) authenticateServiceKey(w http.ResponseWriter, r *http.Req
 		return false
 	}
 	token := strings.TrimPrefix(auth, "Bearer ")
+
+	// Check explicit service key env var first
 	serviceKey := os.Getenv("FORUMLINE_SERVICE_ROLE_KEY")
-	if serviceKey == "" || token != serviceKey {
-		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "invalid authorization"})
-		return false
+	if serviceKey != "" && token == serviceKey {
+		return true
 	}
-	return true
+
+	// Fall back to validating as a JWT with service_role
+	jwtSecret := os.Getenv("JWT_SECRET")
+	if jwtSecret != "" {
+		mapClaims := jwt.MapClaims{}
+		parsed, err := jwt.ParseWithClaims(token, mapClaims, func(t *jwt.Token) (interface{}, error) {
+			return []byte(jwtSecret), nil
+		})
+		if err == nil && parsed.Valid {
+			if role, ok := mapClaims["role"].(string); ok && role == "service_role" {
+				return true
+			}
+		}
+	}
+	writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "invalid authorization"})
+	return false
 }
