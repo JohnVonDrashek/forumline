@@ -216,6 +216,7 @@ func fetchForumNotifications(ctx context.Context, apiBase, token string) ([]aggr
 	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
+		log.Printf("[notifications] forum %s returned HTTP %d", apiBase, resp.StatusCode)
 		return nil, nil
 	}
 
@@ -244,6 +245,7 @@ func markForumNotificationRead(ctx context.Context, apiBase, token, notifID stri
 func signForumlineToken(userID string) string {
 	secret := os.Getenv("FORUMLINE_JWT_SECRET")
 	if secret == "" {
+		log.Printf("[notifications] FORUMLINE_JWT_SECRET is not set")
 		return ""
 	}
 	now := time.Now()
