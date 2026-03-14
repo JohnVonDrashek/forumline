@@ -346,6 +346,62 @@ func (h *ForumHandler) HandleListAll(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, forums)
 }
 
+// HandleEnsureOAuth creates OAuth credentials for an existing forum that doesn't have them.
+// Requires service role key authentication.
+// POST /api/forums/ensure-oauth
+// Body: {"domain": "example.forumline.net"}
+func (h *ForumHandler) HandleEnsureOAuth(w http.ResponseWriter, r *http.Request) {
+	if !h.authenticateServiceKey(w, r) {
+		return
+	}
+
+	var body struct {
+		Domain string `json:"domain"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Domain == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "domain is required"})
+		return
+	}
+
+	ctx := r.Context()
+	forumID := h.Store.GetForumIDByDomain(ctx, body.Domain)
+	if forumID == "" {
+		writeJSON(w, http.StatusNotFound, map[string]string{"error": "forum not found"})
+		return
+	}
+
+	hasOAuth, _ := h.Store.OAuthClientExistsByForumID(ctx, forumID)
+	if hasOAuth {
+		writeJSON(w, http.StatusOK, map[string]string{"message": "OAuth credentials already exist"})
+		return
+	}
+
+	cidBytes := make([]byte, 16)
+	csBytes := make([]byte, 32)
+	if _, err := rand.Read(cidBytes); err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to generate credentials"})
+		return
+	}
+	if _, err := rand.Read(csBytes); err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to generate credentials"})
+		return
+	}
+	clientID := hex.EncodeToString(cidBytes)
+	clientSecret := hex.EncodeToString(csBytes)
+	hash, _ := bcrypt.GenerateFromPassword([]byte(clientSecret), bcrypt.DefaultCost)
+	redirectURIs := []string{"https://" + body.Domain + "/api/forumline/auth/callback"}
+
+	if err := h.Store.CreateOAuthClient(ctx, forumID, clientID, string(hash), redirectURIs); err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to create OAuth credentials"})
+		return
+	}
+
+	log.Printf("ensure-oauth: created OAuth for %s: client_id=%s", body.Domain, clientID)
+	writeJSON(w, http.StatusCreated, map[string]interface{}{
+		"client_id": clientID, "client_secret": clientSecret,
+	})
+}
+
 func (h *ForumHandler) authenticateServiceKey(w http.ResponseWriter, r *http.Request) bool {
 	auth := r.Header.Get("Authorization")
 	if !strings.HasPrefix(auth, "Bearer ") {

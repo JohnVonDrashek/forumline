@@ -96,6 +96,7 @@ func newRouter(s *store.Store, sseHub *shared.SSEHub) *http.ServeMux {
 	mux.Handle("DELETE /api/forums", use(forumH.HandleDelete, auth))
 
 	// Forum admin (service key auth)
+	mux.HandleFunc("POST /api/forums/ensure-oauth", forumH.HandleEnsureOAuth)
 	mux.HandleFunc("PUT /api/forums/screenshot", forumH.HandleUpdateScreenshot)
 	mux.HandleFunc("PUT /api/forums/icon", forumH.HandleUpdateIcon)
 	mux.HandleFunc("PUT /api/forums/health", forumH.HandleUpdateHealth)
