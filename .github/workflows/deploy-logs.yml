@@ -16,7 +16,6 @@ jobs:
       - name: Upload config files
         run: |
           scp deploy/compose/logs/docker-compose.yml logs-prod:/opt/logs/docker-compose.yml
-          scp deploy/compose/logs/loki-config.yml logs-prod:/opt/logs/loki-config.yml
           scp deploy/compose/logs/users.yml logs-prod:/opt/logs/users.yml
 
       - name: Pull and restart

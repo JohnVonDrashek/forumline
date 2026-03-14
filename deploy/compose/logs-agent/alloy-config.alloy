@@ -31,9 +31,9 @@ loki.process "add_host" {
   forward_to = [loki.write.loki.receiver]
 }
 
-// Ship to central Loki
+// Ship to central VictoriaLogs (Loki-compatible endpoint)
 loki.write "loki" {
   endpoint {
-    url = "http://192.168.1.108:3100/loki/api/v1/push"
+    url = "http://192.168.1.108:9428/insert/loki/api/v1/push"
   }
 }
