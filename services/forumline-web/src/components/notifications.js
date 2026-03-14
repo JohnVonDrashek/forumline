@@ -163,14 +163,17 @@ export function initNotifications() {
     renderNotifications();
     ForumlineAPI.markAllNotificationsRead().catch(() => {});
   });
+}
 
-  // Initial badge: use lightweight unread count endpoint
-  if (ForumlineAPI.isAuthenticated()) {
-    ForumlineAPI.getUnreadCount().then(data => {
-      updateBadge(data.count);
-    }).catch(() => {});
+// Called after auth is confirmed (from onAuthStateChange callback)
+export function startNotificationUpdates() {
+  if (!ForumlineAPI.isAuthenticated()) return;
 
-    // Connect SSE for real-time updates
-    connectSSE();
-  }
+  // Fetch unread count for badge
+  ForumlineAPI.getUnreadCount().then(data => {
+    updateBadge(data.count);
+  }).catch(() => {});
+
+  // Connect SSE for real-time updates
+  connectSSE();
 }

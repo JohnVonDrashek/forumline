@@ -29,7 +29,7 @@ import { showLogin, hideLogin, initLogin } from './pages/login.js';
 import { renderForumList, renderDmList, renderBookmarks, addBookmark, removeBookmark, getBookmarks, initSidebar } from './components/sidebar.js';
 import { showToast } from './components/toast.js';
 import { openSearch, closeSearch, initSearch } from './components/search.js';
-import { renderNotifications, initNotifications } from './components/notifications.js';
+import { renderNotifications, initNotifications, startNotificationUpdates } from './components/notifications.js';
 import { renderVoiceParticipants, startVoiceSpeakingAnimation, stopVoiceSpeakingAnimation, initVoiceRoom } from './components/voice-room.js';
 import { renderEmojiPicker, initEmojiPicker } from './components/emoji-picker.js';
 import { initMemberPanel } from './components/member-panel.js';
@@ -205,6 +205,7 @@ ForumlineAuth.onAuthStateChange((event, session) => {
       _authHasRendered = true;
 
       _startDmStoreIfAuth();
+      startNotificationUpdates();
       ForumStore.loadCache();
       ForumStore.syncFromServer(ForumlineAPI.getToken()).then(() => {
         CallManager.init();
