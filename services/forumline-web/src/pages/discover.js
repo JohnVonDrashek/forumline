@@ -68,18 +68,18 @@ export function renderDiscover() {
   if (discoveryForumsApi !== null) {
     let html = '';
 
-    // Recommended section
+    // Recommended section (full-width wrapper so it doesn't break the grid)
     if (discoveryRecommended.length > 0) {
-      html += '<div class="discover-recommended"><h2>Recommended for you</h2><p>Popular with people in your forums</p></div>';
-      html += discoveryRecommended.map(f => renderDiscoverCard(f, true)).join('');
-      html += '<div style="margin:16px 0;border-top:1px solid #ddd"></div>';
+      html += '<div class="discover-section"><div class="discover-recommended"><h2>Recommended for you</h2><p>Popular with people in your forums</p></div>';
+      html += '<div class="discover-grid-inner">' + discoveryRecommended.map(f => renderDiscoverCard(f, true)).join('') + '</div>';
+      html += '<div style="margin:16px 0;border-top:1px solid #ddd"></div></div>';
     }
 
     // Main results
     if (discoveryLoading) {
-      html += '<div style="text-align:center;padding:40px;color:#999">Loading...</div>';
+      html += '<div class="discover-section" style="text-align:center;padding:40px;color:#999">Loading...</div>';
     } else if (discoveryForumsApi.length === 0) {
-      html += '<div style="text-align:center;padding:40px;color:#999">' + (discoveryQuery ? 'No forums found' : 'No forums available yet') + '</div>';
+      html += '<div class="discover-section" style="text-align:center;padding:40px;color:#999">' + (discoveryQuery ? 'No forums found' : 'No forums available yet') + '</div>';
     } else {
       html += discoveryForumsApi.map(f => renderDiscoverCard(f)).join('');
     }
