@@ -38,7 +38,11 @@ function getOrCreateSession() {
     getAuthToken: () => ForumlineAPI.getToken(),
   });
 
+  let prevSessionStatus = null;
   session.onStateChange((state) => {
+    const prev = prevSessionStatus;
+    prevSessionStatus = state.status;
+
     if (state.status === 'invited' && state.invitation) {
       const meta = state.invitation.metadata;
       setCallState('ringing-incoming', {
@@ -57,8 +61,8 @@ function getOrCreateSession() {
         NativeBridge.sendCallEvent('accepted', callState.callInfo);
         startDurationTimer();
       }
-    } else if (state.status === 'connected' && callState.state !== 'idle') {
-      // Invitation was declined/cancelled/timed out
+    } else if (state.status === 'connected' && (prev === 'inviting' || prev === 'invited')) {
+      // Invitation was declined/cancelled/timed out — went back to connected
       NativeBridge.sendCallEvent('ended', callState.callInfo);
       callCleanup();
     } else if (state.status === 'disconnected' && callState.state !== 'idle') {
@@ -157,10 +161,14 @@ function startDurationTimer() {
   durationInterval = setInterval(() => { callState.duration++; notifyCallStateChange(); }, 1000);
 }
 
+let cleaningUp = false;
 function callCleanup() {
+  if (cleaningUp) return;
+  cleaningUp = true;
   if (durationInterval) { clearInterval(durationInterval); durationInterval = null; }
   if (session) { session.destroy(); session = null; }
   setCallState('idle', null);
+  cleaningUp = false;
 }
 
 function destroyCallManager() {
