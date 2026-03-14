@@ -1,7 +1,6 @@
 import { $, plural } from '../lib/utils.js';
 import { escapeHtml } from '../lib/markdown.js';
 import store from '../state/store.js';
-import * as data from '../state/data.js';
 import { ForumlineAPI } from '../api/client.js';
 import { DmStore } from '../api/dm-store.js';
 import { PresenceTracker } from '../api/presence.js';
@@ -76,9 +75,7 @@ export function renderForumList() {
   const el = $('forumList');
   if (!el) return;
 
-  // Use real API memberships if available, fall back to mock data
-  const realForums = ForumStore.forums;
-  const forums = realForums.length > 0 ? realForums : data.forums;
+  const forums = ForumStore.forums;
   const currentForum = store.currentForum;
 
   el.innerHTML = forums.map(f => {
@@ -208,29 +205,8 @@ export function renderDmList() {
     return;
   }
 
-  // Fallback to mock data when not authenticated
-  const dms = data.dms;
-
-  el.innerHTML = dms.map(d => `
-    <div class="dm-item ${currentDm === d.id ? 'active' : ''}" data-dm="${d.id}" tabindex="0" role="listitem" aria-label="${d.name}${d.unread ? ', unread message' : ''}">
-      <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=${d.seed}" alt="" onerror="this.style.display='none'">
-      <div class="dm-item-info">
-        <div class="dm-item-name">${d.name}</div>
-        <div class="dm-item-preview">${d.preview}</div>
-      </div>
-      ${d.unread ? '<div class="unread-dot" aria-hidden="true"></div>' : ''}
-    </div>
-  `).join('');
-
-  el.querySelectorAll('.dm-item').forEach(item => {
-    item.addEventListener('click', () => _deps.showDm(item.dataset.dm));
-    item.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        _deps.showDm(item.dataset.dm);
-      }
-    });
-  });
+  // Not authenticated — show empty state
+  el.innerHTML = '<div class="dm-item dm-loading">Sign in to see messages</div>';
 }
 
 // ========== DRAG AND DROP ==========
@@ -269,11 +245,11 @@ export function initDragAndDrop() {
       e.preventDefault();
       item.classList.remove('drag-over');
       if (draggedEl && draggedEl !== item) {
-        const forums = data.forums;
+        const forums = ForumStore.forums;
         const fromId = draggedEl.dataset.forum;
         const toId = item.dataset.forum;
-        const fromIdx = forums.findIndex(f => f.id === fromId);
-        const toIdx = forums.findIndex(f => f.id === toId);
+        const fromIdx = forums.findIndex(f => (f.id || f.domain) === fromId);
+        const toIdx = forums.findIndex(f => (f.id || f.domain) === toId);
         if (fromIdx >= 0 && toIdx >= 0) {
           const [moved] = forums.splice(fromIdx, 1);
           forums.splice(toIdx, 0, moved);

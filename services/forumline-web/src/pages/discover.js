@@ -1,7 +1,6 @@
 import { $, plural } from '../lib/utils.js';
 import { escapeHtml } from '../lib/markdown.js';
 import store from '../state/store.js';
-import * as data from '../state/data.js';
 import { ForumlineAPI } from '../api/client.js';
 import { ForumDiscoveryAPI } from '../api/forum-discovery.js';
 import { ForumStore } from '../api/forum-store.js';
@@ -87,11 +86,7 @@ export function renderDiscover() {
 
     el.innerHTML = html;
   } else {
-    // Fallback to mock data
-    el.innerHTML = data.discoverForums.map(f => renderDiscoverCard({
-      name: f.name, description: f.desc, domain: f.seed,
-      member_count: f.members, seed: f.seed,
-    })).join('');
+    el.innerHTML = '<div style="text-align:center;padding:40px;color:#999">Loading...</div>';
   }
 
   // Bind join buttons

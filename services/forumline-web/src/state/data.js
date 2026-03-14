@@ -117,17 +117,6 @@ export const messages = {
   ],
 };
 
-export const discoverForums = [
-  { name: 'Retro Computing', desc: 'Celebrating vintage hardware, from Apple II to Amiga. Repair tips, collections, and nostalgia.', members: 2341, banner: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', seed: 'retro-computing' },
-  { name: 'Plant Parents', desc: 'Share your indoor jungle. Watering tips, propagation, and plant identification help.', members: 5672, banner: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)', seed: 'plant-parents' },
-  { name: 'Analog Photography', desc: 'Film photography community. Darkroom techniques, camera reviews, and weekly photo challenges.', members: 1893, banner: 'linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%)', seed: 'analog-photo' },
-  { name: 'Sourdough Bakers', desc: 'Everything about naturally leavened bread. Starter tips, recipes, and crumb shots.', members: 8234, banner: 'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)', seed: 'sourdough' },
-  { name: 'City Cycling', desc: 'Urban cycling advocacy, route sharing, and bike maintenance for city riders.', members: 3102, banner: 'linear-gradient(135deg, #89f7fe 0%, #66a6ff 100%)', seed: 'city-cycling' },
-  { name: 'Board Game Nights', desc: 'Find local game groups, discuss strategy, and review new releases.', members: 4521, banner: 'linear-gradient(135deg, #f6d365 0%, #fda085 100%)', seed: 'board-games' },
-  { name: 'DIY Electronics', desc: 'Arduino, Raspberry Pi, and beyond. Project showcases and troubleshooting.', members: 6120, banner: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', seed: 'diy-electronics' },
-  { name: 'Creative Writing', desc: 'Share your fiction, poetry, and essays. Constructive feedback and writing prompts.', members: 2987, banner: 'linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)', seed: 'creative-writing' },
-];
-
 export const activities = [
   { user: 'testcaller', seed: 'testcaller', text: '<strong>testcaller</strong> replied to "My first Godot game - feedback?" in <span class="activity-forum">Indie Game Dev</span>', time: '45 min ago' },
   { user: 'testuser_debug', seed: 'testuser_debug', text: '<strong>testuser_debug</strong> replied to "How do voice rooms work?" in <span class="activity-forum">Demo Forum</span>', time: '2 hours ago' },

@@ -12,7 +12,7 @@ import (
 
 func (s *Store) ListForums(ctx context.Context, search, tag, sort string, limit, offset int) ([]map[string]interface{}, error) {
 	query := `SELECT id, domain, name, icon_url, api_base, web_base, capabilities, description, screenshot_url, tags, member_count
-		 FROM forumline_forums WHERE approved = true`
+		 FROM forumline_forums WHERE approved = true AND array_length(capabilities, 1) > 0`
 	var args []interface{}
 	argIdx := 1
 
@@ -70,7 +70,7 @@ func (s *Store) ListForums(ctx context.Context, search, tag, sort string, limit,
 
 func (s *Store) ListForumTags(ctx context.Context) ([]string, error) {
 	rows, err := s.Pool.Query(ctx,
-		`SELECT DISTINCT unnest(tags) AS tag FROM forumline_forums WHERE approved = true ORDER BY tag`)
+		`SELECT DISTINCT unnest(tags) AS tag FROM forumline_forums WHERE approved = true AND array_length(capabilities, 1) > 0 ORDER BY tag`)
 	if err != nil {
 		return nil, err
 	}

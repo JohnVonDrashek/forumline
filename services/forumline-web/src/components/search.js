@@ -122,8 +122,6 @@ function handleSearchInput(e) {
   const forums = data.forums;
   const threads = data.threads;
   const profiles = data.profiles;
-  const discoverForums = data.discoverForums;
-
   // Search forums
   const matchedForums = forums.filter(f => f.name.toLowerCase().includes(query));
   if (matchedForums.length) {
@@ -170,22 +168,6 @@ function handleSearchInput(e) {
         <div>
           <div class="search-result-name">${highlightMatch(p.name, query)}</div>
           <div class="search-result-meta">${p.bio.substring(0, 50)}...</div>
-        </div>
-      </div>
-    `).join('');
-    html += '</div>';
-  }
-
-  // Search discover forums
-  const matchedDiscover = discoverForums.filter(f => f.name.toLowerCase().includes(query) || f.desc.toLowerCase().includes(query)).slice(0, 3);
-  if (matchedDiscover.length) {
-    html += '<div class="search-result-group"><div class="search-result-label">Discover</div>';
-    html += matchedDiscover.map(f => `
-      <div class="search-result-item" data-action="discover">
-        <img src="https://api.dicebear.com/7.x/shapes/svg?seed=${f.seed}" alt="">
-        <div>
-          <div class="search-result-name">${highlightMatch(f.name, query)}</div>
-          <div class="search-result-meta">${plural(f.members, 'member')}</div>
         </div>
       </div>
     `).join('');
