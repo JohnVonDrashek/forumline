@@ -1,15 +1,15 @@
 package handler
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
-	"os"
-	"time"
 
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/forumline/forumline/services/forumline-api/store"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type WebhookHandler struct {
@@ -22,16 +22,11 @@ func NewWebhookHandler(s *store.Store) *WebhookHandler {
 
 // HandleNotification handles POST /api/webhooks/notification.
 // Forums call this to push notifications to forumline when they are created.
-// Auth: Bearer JWT signed with FORUMLINE_JWT_SECRET, sub=forum_domain, iss="forum".
+// Auth: client_id + client_secret in the request body (same OAuth credentials).
 func (h *WebhookHandler) HandleNotification(w http.ResponseWriter, r *http.Request) {
-	forumDomain, err := h.authenticateForumWebhook(r)
-	if err != nil {
-		log.Printf("[webhook] auth failed: %v", err)
-		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "Unauthorized"})
-		return
-	}
-
 	var body struct {
+		ClientID        string `json:"client_id"`
+		ClientSecret    string `json:"client_secret"`
 		ForumlineUserID string `json:"forumline_user_id"`
 		Type            string `json:"type"`
 		Title           string `json:"title"`
@@ -42,6 +37,14 @@ func (h *WebhookHandler) HandleNotification(w http.ResponseWriter, r *http.Reque
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "Invalid JSON"})
 		return
 	}
+
+	forumDomain, err := h.authenticateClient(r, body.ClientID, body.ClientSecret)
+	if err != nil {
+		log.Printf("[webhook] auth failed: %v", err)
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "Unauthorized"})
+		return
+	}
+
 	if body.ForumlineUserID == "" || body.Type == "" || body.Title == "" {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "forumline_user_id, type, and title are required"})
 		return
@@ -49,21 +52,18 @@ func (h *WebhookHandler) HandleNotification(w http.ResponseWriter, r *http.Reque
 
 	ctx := r.Context()
 
-	// Verify user exists
 	exists, err := h.Store.UserExists(ctx, body.ForumlineUserID)
 	if err != nil || !exists {
 		writeJSON(w, http.StatusNotFound, map[string]string{"error": "User not found"})
 		return
 	}
 
-	// Check if muted
 	muted, _ := h.Store.IsNotificationsMutedByDomain(ctx, body.ForumlineUserID, forumDomain)
 	if muted {
 		writeJSON(w, http.StatusOK, map[string]string{"status": "muted"})
 		return
 	}
 
-	// Look up forum name
 	forumName, err := h.Store.GetForumNameByDomain(ctx, forumDomain)
 	if err != nil {
 		writeJSON(w, http.StatusNotFound, map[string]string{"error": "Forum not registered"})
@@ -85,23 +85,27 @@ func (h *WebhookHandler) HandleNotification(w http.ResponseWriter, r *http.Reque
 }
 
 // HandleNotificationBatch handles POST /api/webhooks/notifications (plural).
-// Accepts an array of notifications from a single forum.
 func (h *WebhookHandler) HandleNotificationBatch(w http.ResponseWriter, r *http.Request) {
-	forumDomain, err := h.authenticateForumWebhook(r)
-	if err != nil {
-		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "Unauthorized"})
+	var body struct {
+		ClientID     string `json:"client_id"`
+		ClientSecret string `json:"client_secret"`
+		Items        []struct {
+			ForumlineUserID string `json:"forumline_user_id"`
+			Type            string `json:"type"`
+			Title           string `json:"title"`
+			Body            string `json:"body"`
+			Link            string `json:"link"`
+		} `json:"items"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "Invalid JSON"})
 		return
 	}
 
-	var items []struct {
-		ForumlineUserID string `json:"forumline_user_id"`
-		Type            string `json:"type"`
-		Title           string `json:"title"`
-		Body            string `json:"body"`
-		Link            string `json:"link"`
-	}
-	if err := json.NewDecoder(r.Body).Decode(&items); err != nil {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "Invalid JSON"})
+	forumDomain, err := h.authenticateClient(r, body.ClientID, body.ClientSecret)
+	if err != nil {
+		log.Printf("[webhook] batch auth failed: %v", err)
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "Unauthorized"})
 		return
 	}
 
@@ -113,7 +117,7 @@ func (h *WebhookHandler) HandleNotificationBatch(w http.ResponseWriter, r *http.
 	}
 
 	inserted := 0
-	for _, item := range items {
+	for _, item := range body.Items {
 		if item.ForumlineUserID == "" || item.Type == "" || item.Title == "" {
 			continue
 		}
@@ -139,44 +143,33 @@ func (h *WebhookHandler) HandleNotificationBatch(w http.ResponseWriter, r *http.
 	writeJSON(w, http.StatusCreated, map[string]int{"inserted": inserted})
 }
 
-// authenticateForumWebhook validates a forum-signed JWT and returns the forum domain.
-func (h *WebhookHandler) authenticateForumWebhook(r *http.Request) (string, error) {
-	secret := os.Getenv("FORUMLINE_JWT_SECRET")
-	if secret == "" {
-		return "", fmt.Errorf("FORUMLINE_JWT_SECRET not set")
+// authenticateClient validates OAuth client credentials and returns the forum domain.
+func (h *WebhookHandler) authenticateClient(r *http.Request, clientID, clientSecret string) (string, error) {
+	if clientID == "" || clientSecret == "" {
+		return "", fmt.Errorf("client_id and client_secret required")
 	}
 
-	auth := r.Header.Get("Authorization")
-	if len(auth) < 8 || auth[:7] != "Bearer " {
-		return "", fmt.Errorf("missing or invalid authorization header")
+	ctx := r.Context()
+	client, err := h.Store.GetOAuthClientWithSecret(ctx, clientID)
+	if err != nil || client == nil {
+		return "", fmt.Errorf("unknown client_id: %s", clientID)
 	}
-	tokenStr := auth[7:]
 
-	parsed, err := jwt.ParseWithClaims(tokenStr, &jwt.RegisteredClaims{}, func(t *jwt.Token) (interface{}, error) {
-		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("unexpected signing method")
-		}
-		return []byte(secret), nil
-	})
+	// Verify secret: bcrypt first, SHA-256 fallback (same as OAuth token endpoint)
+	valid := bcrypt.CompareHashAndPassword([]byte(client.ClientSecretHash), []byte(clientSecret)) == nil
+	if !valid {
+		hash := sha256.Sum256([]byte(clientSecret))
+		valid = client.ClientSecretHash == hex.EncodeToString(hash[:])
+	}
+	if !valid {
+		return "", fmt.Errorf("invalid client_secret for client_id: %s", clientID)
+	}
+
+	// Look up forum domain from forum_id
+	domain, err := h.Store.GetForumDomainByID(ctx, client.ForumID)
 	if err != nil {
-		return "", err
-	}
-	if !parsed.Valid {
-		return "", fmt.Errorf("invalid token")
+		return "", fmt.Errorf("forum not found for client: %s", clientID)
 	}
 
-	claims, ok := parsed.Claims.(*jwt.RegisteredClaims)
-	if !ok || claims.Subject == "" {
-		return "", fmt.Errorf("missing subject")
-	}
-	if claims.Issuer != "forum" {
-		return "", fmt.Errorf("invalid issuer: %s", claims.Issuer)
-	}
-
-	// Verify expiry (jwt library handles this, but be explicit)
-	if claims.ExpiresAt != nil && claims.ExpiresAt.Before(time.Now()) {
-		return "", fmt.Errorf("token expired")
-	}
-
-	return claims.Subject, nil
+	return domain, nil
 }

@@ -147,6 +147,12 @@ func (s *Store) GetForumIDByDomain(ctx context.Context, domain string) string {
 	return id
 }
 
+func (s *Store) GetForumDomainByID(ctx context.Context, forumID string) (string, error) {
+	var domain string
+	err := s.Pool.QueryRow(ctx, `SELECT domain FROM forumline_forums WHERE id = $1`, forumID).Scan(&domain)
+	return domain, err
+}
+
 func (s *Store) GetForumName(ctx context.Context, forumID string) string {
 	var name string
 	_ = s.Pool.QueryRow(ctx, `SELECT COALESCE(name, domain) FROM forumline_forums WHERE id = $1`, forumID).Scan(&name)
