@@ -26,6 +26,7 @@ func NewWebhookHandler(s *store.Store) *WebhookHandler {
 func (h *WebhookHandler) HandleNotification(w http.ResponseWriter, r *http.Request) {
 	forumDomain, err := h.authenticateForumWebhook(r)
 	if err != nil {
+		log.Printf("[webhook] auth failed: %v", err)
 		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "Unauthorized"})
 		return
 	}
