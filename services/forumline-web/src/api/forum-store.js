@@ -131,9 +131,9 @@ export const ForumStore = {
     } catch (e) {}
   },
 
-  switchForum(domain) {
+  switchForum(domain, path) {
     const forum = this._forums.find(f => f.domain === domain);
-    if (!forum) return; this._activeForum = forum; this._notify(); this.showWebview(forum);
+    if (!forum) return; this._activeForum = forum; this._notify(); this.showWebview(forum, path);
   },
 
   goHome() { this._activeForum = null; this.destroyWebview(); this._notify(); },
@@ -145,7 +145,7 @@ export const ForumStore = {
     this._notify();
   },
 
-  showWebview(forum) {
+  showWebview(forum, path) {
     this.destroyWebview();
     const container = document.getElementById('webviewIframeWrap');
     const spinner = document.getElementById('webviewSpinner');
@@ -172,7 +172,7 @@ export const ForumStore = {
     if (muteBtn) muteBtn.style.display = isMember ? '' : 'none';
 
     const iframe = document.createElement('iframe');
-    iframe.src = forum.web_base; iframe.title = forum.name + ' forum';
+    iframe.src = forum.web_base + (path || ''); iframe.title = forum.name + ' forum';
     iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-popups');
     iframe.setAttribute('allow', 'clipboard-read; clipboard-write; microphone; display-capture');
     iframe.style.cssText = 'width:100%;height:100%;border:none;';

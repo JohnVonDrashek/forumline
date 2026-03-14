@@ -257,8 +257,9 @@
   border-bottom-color: var(--border-light);
 }
 
-[data-theme="dark"] .thread-item:hover {
-  background: rgba(255,255,255,0.02);
+[data-theme="dark"] .thread-item:hover,
+[data-theme="dark"] .activity-item:hover {
+  background: rgba(255,255,255,0.04);
 }
 
 [data-theme="dark"] .thread-pinned {

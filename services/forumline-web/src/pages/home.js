@@ -59,7 +59,7 @@ export function renderActivityFeed() {
         : `replied in "${a.thread_title}"`;
 
       return `
-        <div class="activity-item">
+        <div class="activity-item" data-domain="${a.forum_domain || ''}" data-thread="${a.thread_id || ''}">
           <img src="${avatarUrl}" alt="">
           <div>
             <div class="activity-text"><strong>${a.author}</strong> ${actionText} in <span class="activity-forum">${a.forum_name}</span></div>
@@ -68,6 +68,14 @@ export function renderActivityFeed() {
         </div>
       `;
     }).join('');
+
+    el.querySelectorAll('.activity-item[data-domain]').forEach(item => {
+      item.addEventListener('click', () => {
+        const domain = item.dataset.domain;
+        const threadId = item.dataset.thread;
+        if (domain) ForumStore.switchForum(domain, threadId ? `/t/${threadId}` : '');
+      });
+    });
   }).catch(() => {
     el.innerHTML = '<div class="activity-empty">Could not load activity.</div>';
   });
