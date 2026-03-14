@@ -4,6 +4,7 @@ import store from '../state/store.js';
 import { ForumlineAPI } from '../api/client.js';
 import { ForumDiscoveryAPI } from '../api/forum-discovery.js';
 import { ForumStore } from '../api/forum-store.js';
+import { pushState } from '../router.js';
 
 let _showView, _renderForumList, _renderDmList, _showToast;
 
@@ -68,8 +69,8 @@ export function renderDiscover() {
   if (discoveryForumsApi !== null) {
     let html = '';
 
-    // Recommended section (full-width wrapper so it doesn't break the grid)
-    if (discoveryRecommended.length > 0) {
+    // Recommended section — hide when searching or filtering by tag
+    if (discoveryRecommended.length > 0 && !discoveryQuery && !discoveryActiveTag) {
       html += '<div class="discover-section"><div class="discover-recommended"><h2>Recommended for you</h2><p>Popular with people in your forums</p></div>';
       html += '<div class="discover-grid-inner">' + discoveryRecommended.map(f => renderDiscoverCard(f, true)).join('') + '</div>';
       html += '<div style="margin:16px 0;border-top:1px solid #ddd"></div></div>';
@@ -114,6 +115,31 @@ export function renderDiscover() {
         btn.textContent = 'Join';
         _showToast('Failed to join: ' + err.message);
       }
+    });
+  });
+
+  // Bind card clicks to navigate to the forum (preview only — does NOT join)
+  el.querySelectorAll('.discover-card[data-domain]').forEach(card => {
+    card.addEventListener('click', (e) => {
+      if (e.target.closest('.join-btn')) return;
+      const domain = card.dataset.domain;
+      if (!domain) return;
+      const isJoined = ForumStore.forums.some(f => f.domain === domain);
+      if (isJoined) {
+        ForumStore.switchForum(domain);
+      } else {
+        // Preview the forum in the webview without joining
+        const allForums = [...(discoveryForumsApi || []), ...discoveryRecommended];
+        const forumInfo = allForums.find(f => f.domain === domain);
+        if (forumInfo && forumInfo.web_base) {
+          ForumStore.showWebview({
+            domain, name: forumInfo.name || domain,
+            icon_url: forumInfo.icon_url || '', web_base: forumInfo.web_base,
+            seed: forumInfo.domain || domain, members: forumInfo.member_count || 0,
+          });
+        }
+      }
+      pushState({ view: 'forum', forumId: domain, isReal: true });
     });
   });
 

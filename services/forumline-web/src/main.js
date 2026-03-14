@@ -459,13 +459,43 @@ $('newThreadBtn')?.addEventListener('click', () => wrappedShowNewThread());
 $('announcementLearnMore')?.addEventListener('click', () => wrappedShowDiscover());
 
 // Webview forum buttons
-$('webviewLeaveBtn')?.addEventListener('click', () => {
-  const forum = ForumStore.activeForum;
-  if (!forum) return;
-  if (confirm(`Leave ${forum.name}? You can rejoin later.`)) {
-    ForumStore.leaveForum(forum.domain);
-    wrappedShowHome();
-    showToast(`Left ${forum.name}`);
+$('webviewLeaveBtn')?.addEventListener('click', async () => {
+  const btn = $('webviewLeaveBtn');
+  const mode = btn?.dataset.mode;
+  const domain = btn?.dataset.domain;
+
+  if (mode === 'join' && domain) {
+    // Join from preview
+    btn.disabled = true;
+    btn.textContent = 'Joining...';
+    try {
+      const forumInfo = {
+        name: $('webviewForumName')?.textContent || domain,
+        icon_url: $('webviewAvatar')?.src || '',
+        web_base: 'https://' + domain,
+      };
+      await ForumStore.joinByDomain(domain, forumInfo);
+      btn.textContent = 'Leave';
+      btn.title = 'Leave forum';
+      btn.dataset.mode = 'leave';
+      btn.disabled = false;
+      $('webviewMuteBtn').style.display = '';
+      renderForumList();
+      showToast('Forum joined!');
+    } catch (err) {
+      btn.textContent = 'Join';
+      btn.disabled = false;
+      showToast('Failed to join: ' + err.message);
+    }
+  } else {
+    // Leave
+    const forum = ForumStore.activeForum;
+    if (!forum) return;
+    if (confirm(`Leave ${forum.name}? You can rejoin later.`)) {
+      ForumStore.leaveForum(forum.domain);
+      wrappedShowHome();
+      showToast(`Left ${forum.name}`);
+    }
   }
 });
 

@@ -140,6 +140,18 @@ export const ForumStore = {
     if (mtEl) mtEl.textContent = forum.domain;
     if (spinner) spinner.classList.remove('hidden');
 
+    // Toggle Leave/Join button based on membership
+    var leaveBtn = document.getElementById('webviewLeaveBtn');
+    var muteBtn = document.getElementById('webviewMuteBtn');
+    var isMember = this._forums.some(f => f.domain === forum.domain);
+    if (leaveBtn) {
+      leaveBtn.textContent = isMember ? 'Leave' : 'Join';
+      leaveBtn.title = isMember ? 'Leave forum' : 'Join forum';
+      leaveBtn.dataset.mode = isMember ? 'leave' : 'join';
+      leaveBtn.dataset.domain = forum.domain;
+    }
+    if (muteBtn) muteBtn.style.display = isMember ? '' : 'none';
+
     const iframe = document.createElement('iframe');
     iframe.src = forum.web_base; iframe.title = forum.name + ' forum';
     iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-popups');
