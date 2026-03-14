@@ -1,9 +1,6 @@
--- One-time migration: enable Citus on an existing hosted database.
--- Run this AFTER upgrading the postgres image to citusdata/citus:13.0
--- and restarting the container.
---
--- Usage (from hosted-prod LXC):
---   docker compose exec postgres psql -U postgres -f /opt/hosted/repo/services/hosted/migrate-to-citus.sql
+-- Citus migration (idempotent) — runs on every deploy via CI.
+-- The citusdata/citus Docker image provides shared_preload_libraries='citus'.
+-- This script creates the extension and distributes tenant schemas.
 
 -- 1. Create the Citus extension
 CREATE EXTENSION IF NOT EXISTS citus;

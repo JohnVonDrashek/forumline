@@ -31,4 +31,8 @@ jobs:
         run: ssh hosted-prod "cd /opt/hosted/repo && git fetch origin main && git reset --hard origin/main"
 
       - name: Rebuild and restart
-        run: ssh hosted-prod "cd /opt/hosted && docker compose up -d --build hosted && docker compose ps"
+        run: ssh hosted-prod "cd /opt/hosted && docker compose up -d --build && docker compose ps"
+
+      - name: Run Citus migration (idempotent)
+        run: |
+          ssh hosted-prod "cd /opt/hosted && cat repo/services/hosted/migrate-to-citus.sql | docker compose exec -T postgres psql -U postgres"
