@@ -85,7 +85,7 @@ func (ph *PlatformHandlers) HandleProvision(w http.ResponseWriter, r *http.Reque
 	// Register with Forumline identity API to get OAuth credentials.
 	// Use the caller's Forumline access token (from Authorization header).
 	authHeader := r.Header.Get("Authorization")
-	oauthCreds, err := registerForumWithForumline(r.Context(), result.Domain, body.Name, authHeader)
+	oauthCreds, err := RegisterForumWithForumline(r.Context(), result.Domain, body.Name, authHeader)
 	if err != nil {
 		log.Printf("warning: forum provisioned but OAuth registration failed: %v", err)
 		// Still return success — the forum exists, just without OAuth yet
@@ -173,14 +173,14 @@ func (ph *PlatformHandlers) HandleExport(w http.ResponseWriter, r *http.Request)
 	}
 }
 
-type oauthCredentials struct {
+type OauthCredentials struct {
 	ClientID     string
 	ClientSecret string
 }
 
-// registerForumWithForumline calls POST /api/forums on the Forumline identity API
+// RegisterForumWithForumline calls POST /api/forums on the Forumline identity API
 // to register the new forum and obtain OAuth client credentials.
-func registerForumWithForumline(ctx context.Context, domain, name, authHeader string) (*oauthCredentials, error) {
+func RegisterForumWithForumline(ctx context.Context, domain, name, authHeader string) (*OauthCredentials, error) {
 	forumlineURL := os.Getenv("FORUMLINE_APP_URL")
 	if forumlineURL == "" {
 		return nil, fmt.Errorf("FORUMLINE_APP_URL not set")
@@ -231,7 +231,7 @@ func registerForumWithForumline(ctx context.Context, domain, name, authHeader st
 	}
 
 	log.Printf("registered forum %s with Forumline: client_id=%s", domain, result.ClientID)
-	return &oauthCredentials{ClientID: result.ClientID, ClientSecret: result.ClientSecret}, nil
+	return &OauthCredentials{ClientID: result.ClientID, ClientSecret: result.ClientSecret}, nil
 }
 
 func writeJSON(w http.ResponseWriter, status int, v interface{}) {

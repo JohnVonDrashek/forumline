@@ -28,6 +28,8 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/golang-jwt/jwt/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/forumline/forum-server/forum"
 	plat "github.com/forumline/forumline/services/hosted/platform"
 	shared "github.com/forumline/forumline/shared-go"
@@ -77,6 +79,9 @@ func main() {
 	sseHub.Listen(ctx, "post_changes")
 	sseHub.Listen(ctx, "voice_signal_changes")
 	sseHub.StartListening(ctx)
+
+	// Fix tenants missing OAuth credentials (best-effort, runs in background)
+	go fixMissingOAuth(ctx, pool, store)
 
 	// Site cache for custom frontends (256MB, 5-minute TTL)
 	siteCache := plat.NewSiteCache(256, 5*time.Minute)
@@ -213,6 +218,61 @@ func main() {
 	log.Printf("tenants loaded: %d", len(store.All()))
 	if err := srv.ListenAndServe(); err != http.ErrServerClosed {
 		log.Fatalf("server error: %v", err)
+	}
+}
+
+// fixMissingOAuth registers OAuth credentials for tenants that don't have them.
+// This handles the case where provisioning succeeded but OAuth registration failed.
+func fixMissingOAuth(ctx context.Context, pool *pgxpool.Pool, store *plat.TenantStore) {
+	// Wait a moment for the server to be ready
+	time.Sleep(2 * time.Second)
+
+	// Generate a service JWT for authenticating with the Forumline API
+	jwtSecret := os.Getenv("FORUMLINE_JWT_SECRET")
+	if jwtSecret == "" {
+		return
+	}
+
+	for _, tenant := range store.All() {
+		if tenant.ForumlineClientID != "" {
+			continue
+		}
+
+		log.Printf("tenant %s (%s) missing OAuth credentials, attempting registration...", tenant.Slug, tenant.Domain)
+
+		// Create a temporary JWT signed with the shared secret for auth
+		token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.RegisteredClaims{
+			Subject:   tenant.OwnerForumlineID,
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute)),
+			Audience:  jwt.ClaimStrings{"authenticated"},
+		})
+		tokenStr, err := token.SignedString([]byte(jwtSecret))
+		if err != nil {
+			log.Printf("failed to sign JWT for %s: %v", tenant.Slug, err)
+			continue
+		}
+
+		creds, err := plat.RegisterForumWithForumline(ctx, tenant.Domain, tenant.Name, "Bearer "+tokenStr)
+		if err != nil {
+			log.Printf("OAuth registration failed for %s: %v", tenant.Slug, err)
+			continue
+		}
+
+		_, err = pool.Exec(ctx,
+			`UPDATE platform_tenants SET forumline_client_id = $1, forumline_client_secret = $2 WHERE slug = $3`,
+			creds.ClientID, creds.ClientSecret, tenant.Slug)
+		if err != nil {
+			log.Printf("failed to store OAuth credentials for %s: %v", tenant.Slug, err)
+			continue
+		}
+
+		log.Printf("OAuth credentials registered for %s: client_id=%s", tenant.Slug, creds.ClientID)
+	}
+
+	// Refresh tenant store to pick up new credentials
+	if err := store.Refresh(ctx); err != nil {
+		log.Printf("tenant store refresh after OAuth fix failed: %v", err)
 	}
 }
 

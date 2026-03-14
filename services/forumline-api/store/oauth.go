@@ -77,6 +77,15 @@ func (s *Store) ConsumeAuthCode(ctx context.Context, code, forumID string) (*Aut
 	return &a, nil
 }
 
+func (s *Store) OAuthClientExistsByForumID(ctx context.Context, forumID string) (bool, error) {
+	var exists bool
+	err := s.Pool.QueryRow(ctx,
+		`SELECT EXISTS(SELECT 1 FROM forumline_oauth_clients WHERE forum_id = $1)`,
+		forumID,
+	).Scan(&exists)
+	return exists, err
+}
+
 func (s *Store) OAuthClientExistsBySecretHash(ctx context.Context, secretHash string) (bool, error) {
 	var exists bool
 	err := s.Pool.QueryRow(ctx,

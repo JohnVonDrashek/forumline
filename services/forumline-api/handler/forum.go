@@ -119,6 +119,40 @@ func (h *ForumHandler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 	}
 	exists, _ := h.Store.DomainExists(ctx, body.Domain)
 	if exists {
+		// Forum exists — check if it needs OAuth credentials
+		forumID := h.Store.GetForumIDByDomain(ctx, body.Domain)
+		if forumID != "" {
+			hasOAuth, _ := h.Store.OAuthClientExistsByForumID(ctx, forumID)
+			if !hasOAuth {
+				// Create OAuth credentials for existing forum without them
+				cidBytes := make([]byte, 16)
+				csBytes := make([]byte, 32)
+				if _, err := rand.Read(cidBytes); err != nil {
+					writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "Failed to generate credentials"})
+					return
+				}
+				if _, err := rand.Read(csBytes); err != nil {
+					writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "Failed to generate credentials"})
+					return
+				}
+				clientID := hex.EncodeToString(cidBytes)
+				clientSecret := hex.EncodeToString(csBytes)
+				hash, _ := bcrypt.GenerateFromPassword([]byte(clientSecret), bcrypt.DefaultCost)
+				redirectURIs := body.RedirectURIs
+				if len(redirectURIs) == 0 {
+					redirectURIs = []string{body.WebBase + "/api/forumline/auth/callback"}
+				}
+				if err := h.Store.CreateOAuthClient(ctx, forumID, clientID, string(hash), redirectURIs); err != nil {
+					writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "Failed to create OAuth credentials"})
+					return
+				}
+				writeJSON(w, http.StatusOK, map[string]interface{}{
+					"forum_id": forumID, "client_id": clientID, "client_secret": clientSecret,
+					"message": "OAuth credentials created for existing forum.",
+				})
+				return
+			}
+		}
 		writeJSON(w, http.StatusConflict, map[string]string{"error": "Forum with this domain is already registered"})
 		return
 	}
