@@ -24,7 +24,7 @@ COPY pnpm-workspace.yaml .
 COPY packages/shared-voice/ packages/shared-voice/
 COPY services/forumline-web/ services/forumline-web/
 
-RUN cd services/forumline-web && pnpm install && pnpm run build
+RUN cd services/forumline-web && pnpm install --ignore-scripts && pnpm run build
 
 # ---- Production stage ----
 FROM alpine:3.21
