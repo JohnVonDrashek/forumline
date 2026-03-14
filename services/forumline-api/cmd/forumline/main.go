@@ -119,8 +119,10 @@ func spaHandler(apiHandler http.Handler) http.Handler {
 			return
 		}
 
-		// If path has a file extension, it's a missing static file — 404
-		if filepath.Ext(r.URL.Path) != "" {
+		// If path looks like a missing static asset, return 404.
+		// Only check known asset extensions — domain-like paths (e.g.
+		// /forum/forumline.net) must fall through to the SPA.
+		if ext := filepath.Ext(r.URL.Path); isStaticAssetExt(ext) {
 			http.NotFound(w, r)
 			return
 		}
@@ -128,4 +130,19 @@ func spaHandler(apiHandler http.Handler) http.Handler {
 		// SPA fallback — serve index.html
 		http.ServeFile(w, r, filepath.Join(distDir, "index.html"))
 	})
+}
+
+// isStaticAssetExt returns true for file extensions that are expected static
+// assets (JS, CSS, images, fonts, etc.). This avoids treating domain-like URL
+// segments (e.g. "forumline.net") as missing files.
+func isStaticAssetExt(ext string) bool {
+	switch strings.ToLower(ext) {
+	case ".js", ".mjs", ".css", ".html",
+		".png", ".jpg", ".jpeg", ".gif", ".svg", ".ico", ".webp", ".avif",
+		".woff", ".woff2", ".ttf", ".eot",
+		".json", ".map", ".webmanifest",
+		".wasm", ".txt", ".xml":
+		return true
+	}
+	return false
 }
