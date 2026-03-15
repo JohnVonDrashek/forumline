@@ -9,12 +9,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install OpenTofu
-        run: |
-          if ! command -v tofu &>/dev/null; then
-            curl -fsSL https://get.opentofu.org/install-opentofu.sh | sudo bash -s -- --install-method standalone --opentofu-version 1.11.5
-          fi
-
       - name: Run OpenTofu apply
         working-directory: deploy/terraform
         env:
