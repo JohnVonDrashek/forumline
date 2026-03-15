@@ -53,8 +53,8 @@ services:
       test: ["CMD", "/app/zitadel", "ready"]
       interval: 10s
       timeout: 5s
-      retries: 15
-      start_period: 60s
+      retries: 30
+      start_period: 120s
     volumes:
       - zitadel-bootstrap:/zitadel/bootstrap:rw
     ports:
