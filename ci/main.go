@@ -47,8 +47,8 @@ func (m *Forumline) Lint(ctx context.Context, source *dagger.Directory) (string,
 	return ctr.Stdout(ctx)
 }
 
-// Deploy deploys a service to production via SSH.
-// Uses Cloudflare Tunnel for public hosts, direct LAN SSH for auth.
+// Deploy deploys a service to production via direct LAN SSH.
+// The Dagger engine runs on the same LAN as all service LXCs.
 func (m *Forumline) Deploy(
 	ctx context.Context,
 	source *dagger.Directory,
@@ -72,11 +72,13 @@ func (m *Forumline) Deploy(
 		hasEnv    bool
 	}
 
+	// All LXCs are on the same LAN as the Dagger engine (CI Docker LXC).
+	// Direct SSH via LAN IPs — no cloudflared proxy needed.
 	configs := map[string]serviceConfig{
-		"forumline": {"forumline-prod", "app-ssh.forumline.net", "/opt/forumline", "deploy/compose/forumline/docker-compose.yml", true},
-		"hosted":    {"hosted-prod", "hosted-ssh.forumline.net", "/opt/hosted", "deploy/compose/hosted/docker-compose.yml", true},
-		"website":   {"website-prod", "www-ssh.forumline.net", "/opt/website", "deploy/compose/website/docker-compose.yml", false},
-		"logs":      {"logs-prod", "logs-ssh.forumline.net", "/opt/logs", "deploy/compose/logs/docker-compose.yml", false},
+		"forumline": {"forumline-prod", "192.168.1.99", "/opt/forumline", "deploy/compose/forumline/docker-compose.yml", true},
+		"hosted":    {"hosted-prod", "192.168.1.107", "/opt/hosted", "deploy/compose/hosted/docker-compose.yml", true},
+		"website":   {"website-prod", "192.168.1.106", "/opt/website", "deploy/compose/website/docker-compose.yml", false},
+		"logs":      {"logs-prod", "192.168.1.108", "/opt/logs", "deploy/compose/logs/docker-compose.yml", false},
 		"auth":      {"auth-prod", "192.168.1.110", "/opt/auth", "deploy/compose/auth/docker-compose.yml", true},
 	}
 
@@ -175,10 +177,10 @@ func (m *Forumline) DeployLogsAgents(
 	}
 
 	hosts := []agentHost{
-		{"forum-prod", "ssh.forumline.net", "forum-prod"},
-		{"forumline-prod", "app-ssh.forumline.net", "forumline-prod"},
-		{"website-prod", "www-ssh.forumline.net", "website-prod"},
-		{"hosted-prod", "hosted-ssh.forumline.net", "hosted-prod"},
+		{"forum-prod", "192.168.1.23", "forum-prod"},
+		{"forumline-prod", "192.168.1.99", "forumline-prod"},
+		{"website-prod", "192.168.1.106", "website-prod"},
+		{"hosted-prod", "192.168.1.107", "hosted-prod"},
 		{"auth-prod", "192.168.1.110", "auth-prod"},
 	}
 
