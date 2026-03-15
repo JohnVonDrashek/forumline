@@ -77,6 +77,7 @@ func (m *Forumline) Deploy(
 		"hosted":    {"hosted-prod", "hosted-ssh.forumline.net", "/opt/hosted", "deploy/compose/hosted/docker-compose.yml", true},
 		"website":   {"website-prod", "www-ssh.forumline.net", "/opt/website", "deploy/compose/website/docker-compose.yml", false},
 		"logs":      {"logs-prod", "logs-ssh.forumline.net", "/opt/logs", "deploy/compose/logs/docker-compose.yml", false},
+		"auth":      {"auth-prod", "192.168.1.110", "/opt/auth", "deploy/compose/auth/docker-compose.yml", true},
 	}
 
 	cfg, ok := configs[service]
@@ -90,8 +91,17 @@ func (m *Forumline) Deploy(
 
 	ctr := m.sshContainer(source, sshKey, cfAccessClientId, cfAccessClientSecret)
 
-	// Configure SSH host alias
-	ctr = ctr.WithExec([]string{"bash", "-c", fmt.Sprintf(`cat >> /root/.ssh/config <<'SSHEOF'
+	// Configure SSH host alias (skip cloudflared proxy for LAN IPs)
+	if cfg.sshHost[0] >= '0' && cfg.sshHost[0] <= '9' {
+		ctr = ctr.WithExec([]string{"bash", "-c", fmt.Sprintf(`cat >> /root/.ssh/config <<'SSHEOF'
+Host %s
+  HostName %s
+  User root
+  IdentityFile /root/.ssh/id_deploy
+  StrictHostKeyChecking no
+SSHEOF`, cfg.host, cfg.sshHost)})
+	} else {
+		ctr = ctr.WithExec([]string{"bash", "-c", fmt.Sprintf(`cat >> /root/.ssh/config <<'SSHEOF'
 Host %s
   HostName %s
   User root
@@ -99,6 +109,7 @@ Host %s
   StrictHostKeyChecking no
   ProxyCommand cloudflared access ssh --hostname %%h --id $CF_ACCESS_CLIENT_ID --secret $CF_ACCESS_CLIENT_SECRET
 SSHEOF`, cfg.host, cfg.sshHost)})
+	}
 
 	// Decrypt and upload env if needed
 	if cfg.hasEnv {
@@ -119,8 +130,8 @@ SSHEOF`, cfg.host, cfg.sshHost)})
 			WithExec([]string{"scp", "deploy/compose/logs/users.yml", fmt.Sprintf("%s:%s/users.yml", cfg.host, cfg.remotePath)})
 	}
 
-	// Pull latest code (skip for logs — no repo on that LXC)
-	if service != "logs" {
+	// Pull latest code (skip for logs and auth — no repo on those LXCs)
+	if service != "logs" && service != "auth" {
 		ctr = ctr.WithExec([]string{"ssh", cfg.host, fmt.Sprintf(
 			"cd %s/repo && git fetch origin main && git reset --hard origin/main", cfg.remotePath)})
 	}
@@ -133,7 +144,7 @@ SSHEOF`, cfg.host, cfg.sshHost)})
 	}
 
 	// Rebuild and restart
-	if service == "logs" {
+	if service == "auth" || service == "logs" {
 		// Logs uses pre-built images — pull latest and restart all services
 		ctr = ctr.WithExec([]string{"ssh", cfg.host, fmt.Sprintf(
 			"cd %s && docker compose pull && docker compose up -d && docker compose ps", cfg.remotePath)})
