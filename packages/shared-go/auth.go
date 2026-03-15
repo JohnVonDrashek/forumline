@@ -29,13 +29,15 @@ func InitAuth(ctx context.Context) error {
 	if zitadelURL == "" {
 		return fmt.Errorf("ZITADEL_URL is not set")
 	}
+	// zitadel.New() expects a bare domain, not a full URL — it adds the scheme itself.
+	zitadelDomain := strings.TrimPrefix(strings.TrimPrefix(zitadelURL, "https://"), "http://")
 	clientID := os.Getenv("ZITADEL_CLIENT_ID")
 	if clientID == "" {
 		return fmt.Errorf("ZITADEL_CLIENT_ID is not set")
 	}
 
 	authZ, err := authorization.New(ctx,
-		zitadel.New(zitadelURL),
+		zitadel.New(zitadelDomain),
 		oauth.DefaultJWTAuthorization(clientID),
 	)
 	if err != nil {
