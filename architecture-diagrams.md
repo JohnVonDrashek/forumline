@@ -34,7 +34,7 @@ graph TB
             Vector2[Vector Agent]
         end
 
-        subgraph CT106["CT 106 — auth-prod (192.168.1.109)"]
+        subgraph CT106["CT 107 — auth-prod (192.168.1.110)"]
             Zitadel[Zitadel<br/>OIDC Provider<br/>:8080]
             ZitadelDB[(Postgres 17<br/>Zitadel managed)]
             Vector5[Vector Agent]

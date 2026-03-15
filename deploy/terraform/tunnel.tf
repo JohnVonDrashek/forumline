@@ -26,7 +26,7 @@ resource "cloudflare_zero_trust_tunnel_cloudflared_config" "forumline" {
     # HTTP/2 origin required for gRPC; Traefik proxies to Zitadel API + Login UI
     ingress_rule {
       hostname = "auth.forumline.net"
-      service  = "http://192.168.1.109:8080"
+      service  = "http://192.168.1.110:8080"
     }
 
     # Forumline App — app.forumline.net
