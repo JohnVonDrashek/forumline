@@ -5,4 +5,4 @@ jobs:
     runs-on: self-hosted
     steps:
       - uses: actions/checkout@v4
-      - run: dagger call lint --source .
+      - run: dagger -m ci call lint --source .

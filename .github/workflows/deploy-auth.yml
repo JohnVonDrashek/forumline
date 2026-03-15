@@ -15,7 +15,7 @@ jobs:
 
       - name: Deploy via Dagger
         run: >-
-          dagger call deploy --source .
+          dagger -m ci call deploy --source .
           --service auth
           --ssh-key env:SSH_DEPLOY_KEY
           --cf-access-client-id env:CF_ACCESS_CLIENT_ID

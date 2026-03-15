@@ -11,7 +11,7 @@ jobs:
 
       - name: Apply via Dagger
         run: >-
-          dagger call terraform-apply --source .
+          dagger -m ci call terraform-apply --source .
           --r2-access-key-id env:AWS_ACCESS_KEY_ID
           --r2-secret-access-key env:AWS_SECRET_ACCESS_KEY
           --cloudflare-api-token env:TF_VAR_cloudflare_api_token

@@ -17,7 +17,7 @@ jobs:
 
       - name: Plan via Dagger
         run: >-
-          dagger call terraform-plan --source .
+          dagger -m ci call terraform-plan --source .
           --r2-access-key-id env:AWS_ACCESS_KEY_ID
           --r2-secret-access-key env:AWS_SECRET_ACCESS_KEY
           --cloudflare-api-token env:TF_VAR_cloudflare_api_token

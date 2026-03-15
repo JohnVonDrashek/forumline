@@ -13,7 +13,7 @@ jobs:
 
       - name: Update via Dagger
         run: >-
-          dagger call update-screenshots --source .
+          dagger -m ci call update-screenshots --source .
           --forumline-api-url env:FORUMLINE_API_URL
           --forumline-service-key env:FORUMLINE_SERVICE_KEY
           --r2-account-id env:R2_ACCOUNT_ID

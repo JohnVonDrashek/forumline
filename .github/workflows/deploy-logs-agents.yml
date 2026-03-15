@@ -15,7 +15,7 @@ jobs:
 
       - name: Deploy via Dagger
         run: >-
-          dagger call deploy-logs-agents --source .
+          dagger -m ci call deploy-logs-agents --source .
           --ssh-key env:SSH_DEPLOY_KEY
           --cf-access-client-id env:CF_ACCESS_CLIENT_ID
           --cf-access-client-secret env:CF_ACCESS_CLIENT_SECRET

@@ -21,7 +21,7 @@ jobs:
 
       - name: Split via Dagger
         run: >-
-          dagger call split-repos --source .
+          dagger -m ci call split-repos --source .
           --split-repo-token env:SPLIT_REPO_TOKEN
         env:
           SPLIT_REPO_TOKEN: ${{ secrets.SPLIT_REPO_TOKEN }}
