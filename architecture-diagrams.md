@@ -184,7 +184,7 @@ graph TB
 | Domain | Routes To | LXC | IP | Container |
 |--------|-----------|-----|-----|-----------|
 | `app.forumline.net` | Forumline API + SPA | CT 101 | 192.168.1.99 | Go + Vite |
-| `*.forumline.net` | Hosted Multi-Tenant | CT 104 | 192.168.1.107 | Go + Citus |
+| `*.forumline.net` | Hosted Multi-Tenant (incl. demo) | CT 104 | 192.168.1.107 | Go + Citus |
 | `livekit.forumline.net` | LiveKit SFU | CT 106 | 192.168.1.111 | LiveKit Server |
 | `auth.forumline.net` | Zitadel OIDC | CT 107 | 192.168.1.110 | Zitadel |
 | `forumline.net` | Static Website | — | Cloudflare | Pages |
