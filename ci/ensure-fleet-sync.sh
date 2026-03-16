@@ -23,6 +23,10 @@ fi
 
 echo "Fleet sync not installed. Installing now..."
 
+# Upload the deploy key from this runner (no need for Proxmox to SSH back)
+DEPLOY_KEY=$(cat ~/.ssh/id_ed25519.pub)
+ssh "$PROXMOX_HOST" "mkdir -p /etc/forumline && echo '$DEPLOY_KEY' > /etc/forumline/deploy-key.pub"
+
 # Upload everything to Proxmox
 ssh "$PROXMOX_HOST" "mkdir -p /tmp/fleet-sync"
 scp "$REPO_ROOT/deploy/proxmox/forumline-fleet-sync.sh" \
@@ -32,6 +36,7 @@ scp "$REPO_ROOT/deploy/proxmox/forumline-fleet-sync.sh" \
     "$REPO_ROOT/deploy/compose/logs/daemon.json" \
     "$PROXMOX_HOST:/tmp/fleet-sync/"
 
+# Run installer — deploy key already in place, so install.sh will skip fetching it
 ssh "$PROXMOX_HOST" "bash /tmp/fleet-sync/install.sh && rm -rf /tmp/fleet-sync"
 
 echo "Fleet sync installed."
