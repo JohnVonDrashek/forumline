@@ -27,7 +27,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/forumline/forumline/services/hosted/forum"
 	plat "github.com/forumline/forumline/services/hosted/platform"
@@ -106,28 +105,28 @@ func main() {
 	// Build the main router.
 	// Platform API routes are served on all domains (filtered by path prefix).
 	// Forum routes are served with tenant middleware (Host-based routing).
-	r := chi.NewRouter()
+	mux := http.NewServeMux()
 
 	// Health check (no tenant context, no DB — keeps Cloudflare Tunnel warm)
-	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte(`{"status":"ok"}`))
 	})
 
 	// Platform API endpoints (no tenant context needed)
-	r.Post("/api/platform/forums", platformHandlers.HandleProvision)
-	r.Get("/api/platform/forums", platformHandlers.HandleListForums)
-	r.Get("/api/platform/forums/{slug}/export", platformHandlers.HandleExport)
+	mux.HandleFunc("POST /api/platform/forums", platformHandlers.HandleProvision)
+	mux.HandleFunc("GET /api/platform/forums", platformHandlers.HandleListForums)
+	mux.HandleFunc("GET /api/platform/forums/{slug}/export", platformHandlers.HandleExport)
 
 	// Site management API (custom frontend files)
-	r.Get("/api/platform/owned-sites", siteHandlers.HandleOwnedSites)
-	r.Get("/api/platform/sites/{slug}/files", siteHandlers.HandleListFiles)
-	r.Get("/api/platform/sites/{slug}/files/*", siteHandlers.HandleGetFile)
-	r.Put("/api/platform/sites/{slug}/files/*", siteHandlers.HandlePutFile)
-	r.Delete("/api/platform/sites/{slug}/files/*", siteHandlers.HandleDeleteFile)
-	r.Post("/api/platform/sites/{slug}/upload", siteHandlers.HandleMultipartUpload)
-	r.Post("/api/platform/sites/{slug}/reset", siteHandlers.HandleReset)
+	mux.HandleFunc("GET /api/platform/owned-sites", siteHandlers.HandleOwnedSites)
+	mux.HandleFunc("GET /api/platform/sites/{slug}/files", siteHandlers.HandleListFiles)
+	mux.HandleFunc("GET /api/platform/sites/{slug}/files/{path...}", siteHandlers.HandleGetFile)
+	mux.HandleFunc("PUT /api/platform/sites/{slug}/files/{path...}", siteHandlers.HandlePutFile)
+	mux.HandleFunc("DELETE /api/platform/sites/{slug}/files/{path...}", siteHandlers.HandleDeleteFile)
+	mux.HandleFunc("POST /api/platform/sites/{slug}/upload", siteHandlers.HandleMultipartUpload)
+	mux.HandleFunc("POST /api/platform/sites/{slug}/reset", siteHandlers.HandleReset)
 
 	// Forum routes — wrapped with tenant middleware.
 	// The tenant middleware resolves Host -> schema and sets search_path.
@@ -169,20 +168,18 @@ func main() {
 		return forumRouter
 	}
 
-	r.Group(func(r chi.Router) {
-		r.Use(tenantMw)
-		r.HandleFunc("/*", func(w http.ResponseWriter, r *http.Request) {
-			tenant := plat.TenantFromContext(r.Context())
-			if tenant == nil {
-				http.Error(w, `{"error":"no tenant"}`, http.StatusInternalServerError)
-				return
-			}
-			getForumRouter(tenant).ServeHTTP(w, r)
-		})
-	})
+	// Catch-all: tenant forum routes (more specific platform routes above win first)
+	mux.Handle("/", tenantMw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		tenant := plat.TenantFromContext(r.Context())
+		if tenant == nil {
+			http.Error(w, `{"error":"no tenant"}`, http.StatusInternalServerError)
+			return
+		}
+		getForumRouter(tenant).ServeHTTP(w, r)
+	})))
 
 	// Global middleware
-	var handler http.Handler = r
+	var handler http.Handler = mux
 	handler = shared.CORSMiddleware(handler)
 	handler = shared.SecurityHeaders(handler)
 	handler = spaHandler(handler, store, siteCache)

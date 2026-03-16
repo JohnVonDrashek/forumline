@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/go-chi/chi/v5"
-
 	"github.com/forumline/forumline/services/hosted/forum/service"
 	shared "github.com/forumline/forumline/shared-go"
 )
@@ -47,7 +45,7 @@ func (h *Handlers) HandleCreateThread(w http.ResponseWriter, r *http.Request) {
 // HandleUpdateThread handles PATCH /api/threads/{id}
 func (h *Handlers) HandleUpdateThread(w http.ResponseWriter, r *http.Request) {
 	userID := shared.UserIDFromContext(r.Context())
-	threadID := chi.URLParam(r, "id")
+	threadID := r.PathValue("id")
 
 	var body struct {
 		ImageURL   *string `json:"image_url,omitempty"`
@@ -112,7 +110,7 @@ func (h *Handlers) HandleCreatePost(w http.ResponseWriter, r *http.Request) {
 // HandleSendChatMessage handles POST /api/channels/{slug}/messages
 func (h *Handlers) HandleSendChatMessage(w http.ResponseWriter, r *http.Request) {
 	userID := shared.UserIDFromContext(r.Context())
-	slug := chi.URLParam(r, "slug")
+	slug := r.PathValue("slug")
 
 	var body struct {
 		Content string `json:"content"`
@@ -132,7 +130,7 @@ func (h *Handlers) HandleSendChatMessage(w http.ResponseWriter, r *http.Request)
 // HandleSendChatMessageByID handles POST /api/channels/_by-id/{id}/messages
 func (h *Handlers) HandleSendChatMessageByID(w http.ResponseWriter, r *http.Request) {
 	userID := shared.UserIDFromContext(r.Context())
-	channelID := chi.URLParam(r, "id")
+	channelID := r.PathValue("id")
 
 	var body struct {
 		Content string `json:"content"`
@@ -175,7 +173,7 @@ func (h *Handlers) HandleAddBookmark(w http.ResponseWriter, r *http.Request) {
 // HandleRemoveBookmark handles DELETE /api/bookmarks/{threadId}
 func (h *Handlers) HandleRemoveBookmark(w http.ResponseWriter, r *http.Request) {
 	userID := shared.UserIDFromContext(r.Context())
-	threadID := chi.URLParam(r, "threadId")
+	threadID := r.PathValue("threadId")
 
 	if err := h.Store.RemoveBookmark(r.Context(), userID, threadID); err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
@@ -187,7 +185,7 @@ func (h *Handlers) HandleRemoveBookmark(w http.ResponseWriter, r *http.Request) 
 // HandleRemoveBookmarkByID handles DELETE /api/bookmarks/by-id/{id}
 func (h *Handlers) HandleRemoveBookmarkByID(w http.ResponseWriter, r *http.Request) {
 	userID := shared.UserIDFromContext(r.Context())
-	bookmarkID := chi.URLParam(r, "id")
+	bookmarkID := r.PathValue("id")
 
 	if err := h.Store.RemoveBookmarkByID(r.Context(), userID, bookmarkID); err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
@@ -218,7 +216,7 @@ func (h *Handlers) HandleMarkAllNotificationsRead(w http.ResponseWriter, r *http
 // HandleUpsertProfile handles PUT /api/profiles/{id}
 func (h *Handlers) HandleUpsertProfile(w http.ResponseWriter, r *http.Request) {
 	userID := shared.UserIDFromContext(r.Context())
-	profileID := chi.URLParam(r, "id")
+	profileID := r.PathValue("id")
 
 	var body struct {
 		Username    *string `json:"username"`
@@ -249,7 +247,7 @@ func (h *Handlers) HandleUpsertProfile(w http.ResponseWriter, r *http.Request) {
 // HandleClearForumlineID handles DELETE /api/profiles/{id}/forumline-id
 func (h *Handlers) HandleClearForumlineID(w http.ResponseWriter, r *http.Request) {
 	userID := shared.UserIDFromContext(r.Context())
-	profileID := chi.URLParam(r, "id")
+	profileID := r.PathValue("id")
 
 	if err := h.ProfileSvc.ClearForumlineID(r.Context(), userID, profileID); err != nil {
 		writeServiceError(w, err)

@@ -14,11 +14,7 @@ import (
 
 // use applies middleware to a handler, wrapping in right-to-left order.
 func use(h http.HandlerFunc, mws ...func(http.Handler) http.Handler) http.Handler {
-	var handler http.Handler = h
-	for i := len(mws) - 1; i >= 0; i-- {
-		handler = mws[i](handler)
-	}
-	return handler
+	return shared.Use(h, mws...)
 }
 
 func newRouter(s *store.Store, sseHub *shared.SSEHub) *http.ServeMux {

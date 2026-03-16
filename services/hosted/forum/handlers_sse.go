@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/go-chi/chi/v5"
 	"github.com/forumline/forumline/services/hosted/forum/store"
 	shared "github.com/forumline/forumline/shared-go"
 )
@@ -14,7 +13,7 @@ import (
 // HandleChatStream handles GET /api/channels/{slug}/stream (SSE).
 // Streams new chat messages for a specific channel, enriched with author profile.
 func (h *Handlers) HandleChatStream(w http.ResponseWriter, r *http.Request) {
-	slug := chi.URLParam(r, "slug")
+	slug := r.PathValue("slug")
 
 	// Look up channel_id for filtering
 	channelID, err := h.Store.GetChannelIDBySlug(r.Context(), slug)
@@ -95,7 +94,7 @@ func (h *Handlers) HandleChatStream(w http.ResponseWriter, r *http.Request) {
 // HandlePostStream handles GET /api/threads/{id}/stream (SSE).
 // Streams new posts for a specific thread, enriched with author profile.
 func (h *Handlers) HandlePostStream(w http.ResponseWriter, r *http.Request) {
-	threadID := chi.URLParam(r, "id")
+	threadID := r.PathValue("id")
 
 	client := &shared.SSEClient{
 		Channel: "post_changes",

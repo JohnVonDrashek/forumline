@@ -62,13 +62,13 @@ importers:
   services/forumline-web:
     dependencies:
       '@dicebear/avataaars':
-        specifier: ^9.4.0
+        specifier: ^9.3.2
         version: 9.4.0(@dicebear/core@9.4.0)
       '@dicebear/core':
-        specifier: ^9.4.0
+        specifier: ^9.3.2
         version: 9.4.0
       '@dicebear/shapes':
-        specifier: ^9.4.0
+        specifier: ^9.3.2
         version: 9.4.0(@dicebear/core@9.4.0)
       livekit-client:
         specifier: ^2.17.2

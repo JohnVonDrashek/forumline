@@ -4,7 +4,6 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/go-chi/chi/v5"
 	shared "github.com/forumline/forumline/shared-go"
 )
 
@@ -24,7 +23,7 @@ func (h *Handlers) HandleCategories(w http.ResponseWriter, r *http.Request) {
 
 // HandleCategoryBySlug handles GET /api/categories/{slug}
 func (h *Handlers) HandleCategoryBySlug(w http.ResponseWriter, r *http.Request) {
-	slug := chi.URLParam(r, "slug")
+	slug := r.PathValue("slug")
 	cat, err := h.Store.GetCategoryBySlug(r.Context(), slug)
 	if err != nil {
 		writeJSON(w, http.StatusNotFound, map[string]string{"error": "category not found"})
@@ -76,7 +75,7 @@ func (h *Handlers) HandleThreads(w http.ResponseWriter, r *http.Request) {
 
 // HandleThread handles GET /api/threads/{id}
 func (h *Handlers) HandleThread(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "id")
+	id := r.PathValue("id")
 	t, err := h.ThreadSvc.Get(r.Context(), id)
 	if err != nil {
 		writeServiceError(w, err)
@@ -87,7 +86,7 @@ func (h *Handlers) HandleThread(w http.ResponseWriter, r *http.Request) {
 
 // HandleThreadsByCategory handles GET /api/categories/{slug}/threads
 func (h *Handlers) HandleThreadsByCategory(w http.ResponseWriter, r *http.Request) {
-	slug := chi.URLParam(r, "slug")
+	slug := r.PathValue("slug")
 	threads, err := h.ThreadSvc.ListByCategory(r.Context(), slug)
 	if err != nil {
 		writeServiceError(w, err)
@@ -98,7 +97,7 @@ func (h *Handlers) HandleThreadsByCategory(w http.ResponseWriter, r *http.Reques
 
 // HandleUserThreads handles GET /api/users/{id}/threads
 func (h *Handlers) HandleUserThreads(w http.ResponseWriter, r *http.Request) {
-	userID := chi.URLParam(r, "id")
+	userID := r.PathValue("id")
 	threads, err := h.ThreadSvc.ListByUser(r.Context(), userID)
 	if err != nil {
 		writeServiceError(w, err)
@@ -124,7 +123,7 @@ func (h *Handlers) HandleSearchThreads(w http.ResponseWriter, r *http.Request) {
 
 // HandlePosts handles GET /api/threads/{id}/posts
 func (h *Handlers) HandlePosts(w http.ResponseWriter, r *http.Request) {
-	threadID := chi.URLParam(r, "id")
+	threadID := r.PathValue("id")
 	posts, err := h.PostSvc.ListByThread(r.Context(), threadID)
 	if err != nil {
 		writeServiceError(w, err)
@@ -135,7 +134,7 @@ func (h *Handlers) HandlePosts(w http.ResponseWriter, r *http.Request) {
 
 // HandleUserPosts handles GET /api/users/{id}/posts
 func (h *Handlers) HandleUserPosts(w http.ResponseWriter, r *http.Request) {
-	userID := chi.URLParam(r, "id")
+	userID := r.PathValue("id")
 	posts, err := h.PostSvc.ListByUser(r.Context(), userID)
 	if err != nil {
 		writeServiceError(w, err)
@@ -161,7 +160,7 @@ func (h *Handlers) HandleSearchPosts(w http.ResponseWriter, r *http.Request) {
 
 // HandleProfile handles GET /api/profiles/{id}
 func (h *Handlers) HandleProfile(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "id")
+	id := r.PathValue("id")
 	p, err := h.ProfileSvc.Get(r.Context(), id)
 	if err != nil {
 		writeServiceError(w, err)
@@ -172,7 +171,7 @@ func (h *Handlers) HandleProfile(w http.ResponseWriter, r *http.Request) {
 
 // HandleProfileByUsername handles GET /api/profiles/by-username/{username}
 func (h *Handlers) HandleProfileByUsername(w http.ResponseWriter, r *http.Request) {
-	username := chi.URLParam(r, "username")
+	username := r.PathValue("username")
 	p, err := h.ProfileSvc.GetByUsername(r.Context(), username)
 	if err != nil {
 		writeServiceError(w, err)
@@ -203,7 +202,7 @@ func (h *Handlers) HandleProfilesBatch(w http.ResponseWriter, r *http.Request) {
 
 // HandleChatMessages handles GET /api/channels/{slug}/messages
 func (h *Handlers) HandleChatMessages(w http.ResponseWriter, r *http.Request) {
-	slug := chi.URLParam(r, "slug")
+	slug := r.PathValue("slug")
 	messages, err := h.ChatSvc.ListMessages(r.Context(), slug)
 	if err != nil {
 		writeServiceError(w, err)
@@ -244,7 +243,7 @@ func (h *Handlers) HandleBookmarks(w http.ResponseWriter, r *http.Request) {
 // HandleBookmarkStatus handles GET /api/bookmarks/{threadId}/status
 func (h *Handlers) HandleBookmarkStatus(w http.ResponseWriter, r *http.Request) {
 	userID := shared.UserIDFromContext(r.Context())
-	threadID := chi.URLParam(r, "threadId")
+	threadID := r.PathValue("threadId")
 
 	id, err := h.Store.GetBookmarkStatus(r.Context(), userID, threadID)
 	if err != nil || id == nil {
