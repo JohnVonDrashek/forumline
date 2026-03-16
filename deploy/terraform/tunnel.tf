@@ -10,11 +10,7 @@ resource "cloudflare_zero_trust_tunnel_cloudflared_config" "forumline" {
   tunnel_id  = var.tunnel_id
 
   config {
-    # Website — forumline.net
-    ingress_rule {
-      hostname = "forumline.net"
-      service  = "http://192.168.1.106:3000"
-    }
+    # Website (forumline.net) is on Cloudflare Pages — no tunnel route needed
 
     # Zitadel Auth — auth.forumline.net
     # HTTP/2 origin required for gRPC; Traefik proxies to Zitadel API + Login UI
