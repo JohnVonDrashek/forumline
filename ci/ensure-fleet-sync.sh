@@ -13,9 +13,7 @@ PROXMOX_HOST="root@192.168.1.98"
 if ssh "$PROXMOX_HOST" "systemctl is-active forumline-fleet-sync.timer" &>/dev/null; then
   echo "Fleet sync already installed, checking for config updates..."
 
-  # Push latest files in case they changed
   scp -q "$REPO_ROOT/deploy/proxmox/forumline-fleet-sync.sh" "$PROXMOX_HOST:/etc/forumline/forumline-fleet-sync.sh"
-  scp -q "$REPO_ROOT/deploy/compose/logs/daemon.json" "$PROXMOX_HOST:/etc/forumline/daemon.json"
   ssh "$PROXMOX_HOST" "chmod +x /etc/forumline/forumline-fleet-sync.sh"
   echo "Config updated. Fleet sync timer is running."
   exit 0
@@ -33,7 +31,6 @@ scp "$REPO_ROOT/deploy/proxmox/forumline-fleet-sync.sh" \
     "$REPO_ROOT/deploy/proxmox/forumline-fleet-sync.service" \
     "$REPO_ROOT/deploy/proxmox/forumline-fleet-sync.timer" \
     "$REPO_ROOT/deploy/proxmox/install.sh" \
-    "$REPO_ROOT/deploy/compose/logs/daemon.json" \
     "$PROXMOX_HOST:/tmp/fleet-sync/"
 
 # Run installer — deploy key already in place, so install.sh will skip fetching it

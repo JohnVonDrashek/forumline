@@ -25,9 +25,9 @@ Workflows in `.github/workflows/`. Runners execute on CT 109 with direct LAN acc
 | `deploy-forumline` | `services/forumline-api/**`, `services/forumline-web/**`, `packages/**` | Deploy Forumline app |
 | `deploy-hosted` | `services/hosted/**`, `packages/shared-go/**` | Deploy hosted forum platform |
 | `deploy-website` | `services/website/**` | Deploy static website |
-| `deploy-logs` | `deploy/compose/logs/**` | Deploy VictoriaLogs + configure Docker syslog on all LXCs |
+| `deploy-logs` | `deploy/compose/logs/**` | Deploy central VictoriaLogs |
 | `deploy-auth` | `deploy/compose/auth/**` | Deploy Zitadel auth |
-| `ensure-fleet-sync` | every push to `main` | Install/update fleet sync on Proxmox (SSH keys + syslog for all LXCs) |
+| `deploy-logs-agents` | `deploy/compose/logs-agent/**` | Deploy Vector agents to all LXCs |
 | `publish-packages` | `packages/**` | Publish TS packages to GitHub Packages |
 | `terraform-plan` | PR touching `deploy/terraform/` | Run OpenTofu plan |
 | `terraform-apply` | manual | Run OpenTofu apply |
@@ -68,29 +68,32 @@ tofu apply -var-file=prod.tfvars   # apply — takes effect immediately, no rest
 
 ## LXC Setup
 
-Each service runs on a Proxmox LXC. New LXCs are **automatically configured** by the fleet sync — a systemd timer on the Proxmox host that runs every 5 minutes and ensures all running LXCs have:
-- CI runner SSH deploy key (for GitHub Actions deploys)
-- Docker syslog logging → VictoriaLogs
+Each service runs on a Proxmox LXC with Docker, SSH access via Cloudflare Tunnel, and a public Cloudflare Tunnel route for the service.
 
-### Adding a new service LXC
+### Website LXC (one-time setup)
 
-1. Create a Proxmox LXC (Debian/Ubuntu) and start it
-2. Install Docker: `pct exec <ctid> -- bash -c 'curl -fsSL https://get.docker.com | sh'`
-3. Fleet sync handles the rest automatically (SSH key, syslog config) — wait 5 min or force: `systemctl start forumline-fleet-sync`
-4. Add tunnel routes in `deploy/terraform/tunnel.tf` and apply
-5. Add to `ci/deploy.sh` HOSTS/PATHS/SECRET_GROUPS maps
-6. Create `.github/workflows/deploy-<service>.yml`
+1. Create a Proxmox LXC (Debian/Ubuntu, 512MB RAM is plenty)
+2. Install Docker:
+   ```bash
+   curl -fsSL https://get.docker.com | sh
+   ```
+3. Set up the deploy directory and clone the repo:
+   ```bash
+   mkdir -p /opt/website
+   git clone https://github.com/forumline/forumline.git /opt/website/repo
+   ```
+4. Add the deploy SSH public key to `/root/.ssh/authorized_keys`
+5. Add tunnel routes in `deploy/terraform/tunnel.tf` and apply (see above)
+6. Test the deploy:
+   ```bash
+   cd /opt/website/repo && git pull origin main
+   cp deploy/compose/website/docker-compose.yml /opt/website/docker-compose.yml
+   cd /opt/website && docker compose up -d --build website
+   ```
 
-### Fleet sync
+### Forumline / Hosted LXCs
 
-Fully automatic — the `ensure-fleet-sync` workflow runs on every push to `main` and installs/updates the fleet sync timer on the Proxmox host if needed. No manual setup required. Source in `deploy/proxmox/`, config lives at `/etc/forumline/` on Proxmox.
-
-```bash
-# On Proxmox — check status or force a sync:
-systemctl status forumline-fleet-sync.timer
-systemctl start forumline-fleet-sync
-journalctl -u forumline-fleet-sync
-```
+Same pattern — see existing LXC configs. Each uses `/opt/<service>/repo` and `/opt/<service>/docker-compose.yml`.
 
 ## Local Development
 

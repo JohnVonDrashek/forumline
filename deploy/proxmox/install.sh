@@ -1,18 +1,10 @@
 #!/usr/bin/env bash
 # One-time installer for the Forumline fleet sync on the Proxmox host.
-# Run from your laptop over VPN:
+# Automatically installed/updated by the ensure-fleet-sync CI workflow.
+# Can also be run directly on Proxmox: bash deploy/proxmox/install.sh
 #
-#   ci/install-fleet-sync.sh
-#
-# Or directly on the Proxmox host:
-#
-#   bash deploy/proxmox/install.sh
-#
-# After this, any new LXC you start will automatically get:
-#   - CI runner SSH key (for deploys)
-#   - Docker syslog → VictoriaLogs config
-#
-# Nothing to remember. Nothing to configure per-container. It just works.
+# After this, any new LXC you start will automatically get the CI
+# runner's SSH deploy key. Nothing to configure per-container.
 
 set -euo pipefail
 
@@ -29,17 +21,7 @@ chmod +x /etc/forumline/forumline-fleet-sync.sh
 # Deploy key — grab from CI runner if not already present
 if [ ! -f /etc/forumline/deploy-key.pub ]; then
   echo "Fetching deploy key from CI runner (192.168.1.112)..."
-  ssh root@192.168.1.112 "cat ~/.ssh/id_ed25519.pub" > /etc/forumline/deploy-key.pub
-fi
-
-# Daemon.json — check same dir first (uploaded by ci/install-fleet-sync.sh),
-# then fall back to repo relative path (running directly on Proxmox from repo)
-if [ -f "$SCRIPT_DIR/daemon.json" ]; then
-  cp "$SCRIPT_DIR/daemon.json" /etc/forumline/daemon.json
-elif [ -f "$SCRIPT_DIR/../compose/logs/daemon.json" ]; then
-  cp "$SCRIPT_DIR/../compose/logs/daemon.json" /etc/forumline/daemon.json
-else
-  echo "WARNING: daemon.json not found, syslog config won't be synced"
+  ssh root@192.168.1.112 "cat /home/runner/.ssh/id_ed25519.pub" > /etc/forumline/deploy-key.pub
 fi
 
 # Install systemd units

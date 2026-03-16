@@ -1,11 +1,11 @@
-name: Deploy Logs (VictoriaLogs)
+name: Deploy Vector Agents
 
 on:
   workflow_dispatch:
   push:
     branches: [main]
     paths:
-      - 'deploy/compose/logs/**'
+      - 'deploy/compose/logs-agent/**'
 
 jobs:
   deploy:
@@ -13,5 +13,5 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Deploy VictoriaLogs
-        run: ci/deploy.sh logs
+      - name: Deploy Vector agents to all LXCs
+        run: ci/deploy-logs-agents.sh
