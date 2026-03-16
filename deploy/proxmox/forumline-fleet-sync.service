@@ -1,0 +1,6 @@
+[Unit]
+Description=Forumline fleet sync — ensure all LXCs have deploy key + syslog config
+
+[Service]
+Type=oneshot
+ExecStart=/etc/forumline/forumline-fleet-sync.sh
