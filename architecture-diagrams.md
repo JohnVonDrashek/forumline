@@ -19,13 +19,13 @@ graph TB
     Tunnel["Cloudflare Tunnel<br/>b00696cc..."]
     R2["Cloudflare R2<br/>Bucket: forumline-avatars<br/>pub-9fed...r2.dev"]
     DNS["Cloudflare DNS<br/>forumline.net zone"]
+    Pages["Cloudflare Pages<br/>forumline.net<br/>Static website"]
     StatusWorker["Status Redirect Worker<br/>Cloudflare Workers"]
     Uptimer["Uptimer<br/>status.forumline.net<br/>Workers + Pages + D1"]
     ZeroTrust["Cloudflare Zero Trust<br/>Service token auth<br/>SSH bastion policy"]
 
     %% Voice & media
-    LiveKit["LiveKit Cloud<br/>SFU · Voice Rooms"]
-    GoogleSTUN["Google STUN<br/>stun.l.google.com:19302<br/>WebRTC ICE"]
+    LiveKit["LiveKit Cloud<br/>SFU · Calls + Voice Rooms"]
 
     %% Email
     Resend["Resend SMTP<br/>smtp.resend.com:465<br/>noreply@forumline.net"]
@@ -62,16 +62,15 @@ graph TB
             Hosted_Vector["Vector 0.45.0"]
         end
 
-        subgraph CT106["CT 106 · auth-prod · 192.168.1.110"]
+        subgraph CT106["CT 106 · livekit-prod · 192.168.1.111"]
+            LK_Server["LiveKit Server<br/>v1.9.12 · SFU<br/>:7880"]
+            LK_Vector["Vector 0.45.0"]
+        end
+
+        subgraph CT107["CT 107 · auth-prod · 192.168.1.110"]
             Zitadel["Zitadel v4.11<br/>OIDC/OAuth2 Provider<br/>:8080"]
             Zitadel_PG[("Postgres 17<br/>Zitadel-managed")]
             Auth_Vector["Vector 0.45.0"]
-        end
-
-        subgraph CT103["CT 103 · website-prod · 192.168.1.106"]
-            Website_Nginx["Nginx<br/>Alpine · :3000"]
-            Website_Content["Static Website<br/>HTML/CSS<br/>Neocities aesthetic"]
-            Web_Vector["Vector 0.45.0"]
         end
 
         subgraph CT105["CT 105 · logs-prod · 192.168.1.108"]
@@ -84,20 +83,22 @@ graph TB
     end
 
     %% ═══════════════════════════════════════════════
-    %% CONNECTIONS — Clients → Tunnel
+    %% CONNECTIONS — Clients → Services
     %% ═══════════════════════════════════════════════
     Browser --> Tunnel
+    Browser --> Pages
     DevLaptop -->|"WireGuard VPN"| WireGuard
 
     %% ═══════════════════════════════════════════════
     %% CONNECTIONS — DNS → Tunnel, Tunnel → Cloudflared → LXCs
     %% ═══════════════════════════════════════════════
     DNS -->|"*.forumline.net CNAME"| Tunnel
+    DNS -->|"forumline.net"| Pages
     Tunnel --> Cloudflared
     Cloudflared -->|"app.forumline.net"| FL_API
     Cloudflared -->|"*.forumline.net"| Hosted_API
+    Cloudflared -->|"livekit.forumline.net"| LK_Server
     Cloudflared -->|"auth.forumline.net"| Zitadel
-    Cloudflared -->|"forumline.net"| Website_Nginx
     GitHubActions -->|"self-hosted runners"| GHARunners
     ZeroTrust -->|"ssh.forumline.net · CI only"| Proxmox
 
@@ -115,7 +116,6 @@ graph TB
     Hosted_API --> Hosted_Citus
     Hosted_FE -.->|"served by"| Hosted_API
     Zitadel --> Zitadel_PG
-    Website_Content -.->|"served by"| Website_Nginx
 
     %% ═══════════════════════════════════════════════
     %% CONNECTIONS — Internal: service → service
@@ -129,18 +129,13 @@ graph TB
     FL_API --> R2
     Hosted_API --> R2
 
+    FL_API --> LiveKit
     Hosted_API --> LiveKit
 
     FL_API --> Resend
 
     FL_SPA --> DiceBear
     Hosted_FE --> DiceBear
-
-    %% ═══════════════════════════════════════════════
-    %% CONNECTIONS — WebRTC
-    %% ═══════════════════════════════════════════════
-    FL_API -->|"WebRTC P2P signaling via SSE"| Browser
-    Browser -->|"ICE candidates"| GoogleSTUN
 
     %% ═══════════════════════════════════════════════
     %% CONNECTIONS — Push notifications
@@ -152,9 +147,8 @@ graph TB
     %% ═══════════════════════════════════════════════
     FL_Vector -->|"Loki push"| VLogs
     Hosted_Vector -->|"Loki push"| VLogs
+    LK_Vector -->|"Loki push"| VLogs
     Auth_Vector -->|"Loki push"| VLogs
-    Web_Vector -->|"Loki push"| VLogs
-    WireGuard -.->|"dev access"| VLogs
 
     %% ═══════════════════════════════════════════════
     %% CONNECTIONS — CI/CD
@@ -163,8 +157,9 @@ graph TB
     GitHubActions -->|"SSH deploy"| CT101
     GitHubActions -->|"SSH deploy"| CT104
     GitHubActions -->|"SSH deploy"| CT106
-    GitHubActions -->|"SSH deploy"| CT103
+    GitHubActions -->|"SSH deploy"| CT107
     GitHubActions -->|"SSH deploy"| CT105
+    GHARunners -->|"wrangler pages deploy"| Pages
     OpenTofu -->|"manages"| Tunnel
     OpenTofu -->|"manages"| ZeroTrust
 
@@ -180,7 +175,7 @@ graph TB
     style CT101 fill:#16213e,color:#e0e0e0,stroke:#0f3460
     style CT104 fill:#16213e,color:#e0e0e0,stroke:#0f3460
     style CT106 fill:#16213e,color:#e0e0e0,stroke:#0f3460
-    style CT103 fill:#16213e,color:#e0e0e0,stroke:#0f3460
+    style CT107 fill:#16213e,color:#e0e0e0,stroke:#0f3460
     style CT105 fill:#1a3a1a,color:#e0e0e0,stroke:#2d6a2d
     style CT109 fill:#3a1a1a,color:#e0e0e0,stroke:#6a2d2d
 ```
@@ -191,8 +186,9 @@ graph TB
 |--------|-----------|-----|-----|-----------|
 | `app.forumline.net` | Forumline API + SPA | CT 101 | 192.168.1.99 | Go + Vite |
 | `*.forumline.net` | Hosted Multi-Tenant | CT 104 | 192.168.1.107 | Go + Citus |
-| `auth.forumline.net` | Zitadel OIDC | CT 106 | 192.168.1.110 | Zitadel |
-| `forumline.net` | Static Website | CT 103 | 192.168.1.106 | Nginx |
+| `livekit.forumline.net` | LiveKit SFU | CT 106 | 192.168.1.111 | LiveKit Server |
+| `auth.forumline.net` | Zitadel OIDC | CT 107 | 192.168.1.110 | Zitadel |
+| `forumline.net` | Static Website | — | Cloudflare | Pages |
 | (LAN only) | GHA Runners | CT 109 | 192.168.1.112 | 2x self-hosted |
 | `status.forumline.net` | Uptimer | — | Cloudflare | Workers + D1 |
 | (VPN only) | VictoriaLogs | CT 105 | 192.168.1.108 | VictoriaLogs |
@@ -202,11 +198,13 @@ graph TB
 
 ```
 User Request:  Browser → Cloudflare DNS → Tunnel → Cloudflared → LXC → Go API → Postgres
+Website:       Browser → Cloudflare DNS → Cloudflare Pages (static HTML/CSS)
 Voice Room:    Browser → LiveKit Cloud (SFU) ← Browser
-1:1 Call:      Browser ←→ WebRTC P2P (signaled via SSE, ICE via Google STUN)
+1:1 Call:      Browser → LiveKit Cloud (SFU) ← Browser  (call lifecycle via SSE)
 Push Notify:   Postgres NOTIFY → Go API → VAPID Web Push → Browser
 Log Pipeline:  Docker Container → Vector Agent → VictoriaLogs (:9428)
 Deploy:        git push → GitHub Actions → self-hosted runner → secrets.kdbx → SSH to LXC → docker compose up
+Website Deploy: git push → GitHub Actions → wrangler pages deploy → Cloudflare Pages
 Infra Change:  OpenTofu → Cloudflare (Tunnel + Zero Trust)
 Auth:          Any service → Zitadel OIDC (auth.forumline.net) → Postgres
 Avatars:       Go API → Cloudflare R2 → CDN public URL

@@ -14,11 +14,23 @@ set -euo pipefail
 
 SERVICE="${1:?Usage: ci/deploy.sh <service>}"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+# --- Website deploys to Cloudflare Pages (no LXC, no SSH) ---
+if [ "$SERVICE" = "website" ]; then
+  echo "=== Deploying website to Cloudflare Pages ==="
+  CLOUDFLARE_API_TOKEN=$("$SCRIPT_DIR/secrets.sh" terraform | grep CLOUDFLARE_PAGES_TOKEN | cut -d= -f2-)
+  CLOUDFLARE_ACCOUNT_ID="b4cf6ac20ef4cd693cd7a81113b8d031"
+  export CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID
+  npx wrangler pages deploy "$REPO_ROOT/services/website" \
+    --project-name=forumline-website --branch=main
+  echo "=== website deployed ==="
+  exit 0
+fi
 
 declare -A HOSTS=(
   [forumline]="forumline-prod"
   [hosted]="hosted-prod"
-  [website]="website-prod"
   [logs]="logs-prod"
   [auth]="auth-prod"
   [livekit]="livekit-prod"
@@ -27,7 +39,6 @@ declare -A HOSTS=(
 declare -A PATHS=(
   [forumline]="/opt/forumline"
   [hosted]="/opt/hosted"
-  [website]="/opt/website"
   [logs]="/opt/logs"
   [auth]="/opt/auth"
   [livekit]="/opt/livekit"

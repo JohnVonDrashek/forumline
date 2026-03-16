@@ -160,8 +160,6 @@ export async function initAuth() {
       localStorage.removeItem(STORAGE_KEY)
     }
   }
-  // Clean up legacy storage keys
-  localStorage.removeItem('gotrue-session')
   if (currentSession) scheduleExpiryCheck(currentSession)
 
   // Check URL hash for OAuth tokens

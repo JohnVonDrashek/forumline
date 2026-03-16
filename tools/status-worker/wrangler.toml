@@ -2,9 +2,9 @@ name = "forumline-status"
 main = "src/worker.ts"
 compatibility_date = "2024-12-01"
 
-# Routes — intercept all forumline domains (except status page itself)
+# Routes — intercept tunnel-backed domains (except status page itself)
+# forumline.net is on Cloudflare Pages now — no worker needed
 routes = [
-  { pattern = "forumline.net/*", zone_name = "forumline.net" },
   { pattern = "app.forumline.net/*", zone_name = "forumline.net" },
   { pattern = "hosted.forumline.net/*", zone_name = "forumline.net" },
 ]
